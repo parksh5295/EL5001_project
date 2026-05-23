@@ -85,7 +85,9 @@ def main():
     parser.add_argument("--episodes", type=int, default=30000)
     parser.add_argument("--eval-episodes", type=int, default=300)
     parser.add_argument("--output-dir", default="results")
-    parser.add_argument("--alpha", type=float, default=0.12)
+    parser.add_argument("--alpha", type=float, default=0.10)
+    parser.add_argument("--q-alpha", type=float, default=0.10)
+    parser.add_argument("--sarsa-alpha", type=float, default=0.08)
     parser.add_argument("--alpha-end", type=float, default=0.03)
     parser.add_argument("--epsilon-start", type=float, default=1.0)
     parser.add_argument("--epsilon-end", type=float, default=0.05)
@@ -96,6 +98,8 @@ def main():
     out_dir = Path(args.output_dir)
     factory = env_factory(scenario_path)
     env = UAVSolarEnv(scenario_path)
+    q_alpha = args.q_alpha if args.q_alpha is not None else args.alpha
+    sarsa_alpha = args.sarsa_alpha if args.sarsa_alpha is not None else args.alpha
 
     print("Scenario loaded")
     print(json.dumps(env.scenario, indent=2, ensure_ascii=False))
@@ -113,11 +117,11 @@ def main():
     Q = q_learning(
         factory,
         episodes=args.episodes,
-        alpha=args.alpha,
+        alpha=q_alpha,
+        alpha_end=args.alpha_end,
         gamma=0.95,
         epsilon_start=args.epsilon_start,
         epsilon_end=args.epsilon_end,
-        alpha_end=args.alpha_end,
         optimistic_init=args.optimistic_init,
         seed=1,
     )
@@ -131,11 +135,11 @@ def main():
     QS = sarsa(
         factory,
         episodes=args.episodes,
-        alpha=args.alpha,
+        alpha=sarsa_alpha,
+        alpha_end=args.alpha_end,
         gamma=0.95,
         epsilon_start=args.epsilon_start,
         epsilon_end=args.epsilon_end,
-        alpha_end=args.alpha_end,
         optimistic_init=args.optimistic_init,
         seed=2,
     )

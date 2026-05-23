@@ -101,10 +101,12 @@ def q_learning(
     env_factory: Callable[[], UAVSolarEnv],
     episodes: int = 30000,
     alpha: float = 0.10,
+    alpha_end: float = 0.03,
     gamma: float = 0.95,
     epsilon_start: float = 1.0,
     epsilon_end: float = 0.05,
     epsilon_decay: float = 0.9995,
+    optimistic_init: float = 0.0,
     seed: int = 1,
 ) -> QTable:
 
@@ -112,11 +114,13 @@ def q_learning(
 
     env = env_factory()
 
-    Q = make_q(env.actions)
+    Q = make_q(env.actions, initial_value=optimistic_init)
 
     epsilon = epsilon_start
 
     for ep in range(episodes):
+        frac = ep / max(1, episodes - 1)
+        alpha_t = max(alpha_end, alpha * (1.0 - frac))
 
         s = env.reset()
 
@@ -142,7 +146,7 @@ def q_learning(
 
             target = r + (0.0 if done else gamma * best_next)
 
-            Q[s][a] += alpha * (target - Q[s][a])
+            Q[s][a] += alpha_t * (target - Q[s][a])
 
             s = ns
 
@@ -158,10 +162,12 @@ def sarsa(
     env_factory: Callable[[], UAVSolarEnv],
     episodes: int = 30000,
     alpha: float = 0.10,
+    alpha_end: float = 0.03,
     gamma: float = 0.95,
     epsilon_start: float = 1.0,
     epsilon_end: float = 0.05,
     epsilon_decay: float = 0.9997,
+    optimistic_init: float = 0.0,
     seed: int = 2,
 ) -> QTable:
 
@@ -169,11 +175,13 @@ def sarsa(
 
     env = env_factory()
 
-    Q = make_q(env.actions)
+    Q = make_q(env.actions, initial_value=optimistic_init)
 
     epsilon = epsilon_start
 
     for ep in range(episodes):
+        frac = ep / max(1, episodes - 1)
+        alpha_t = max(alpha_end, alpha * (1.0 - frac))
 
         s = env.reset()
 
@@ -205,7 +213,7 @@ def sarsa(
 
             target = r + (0.0 if done else gamma * Q[ns][na])
 
-            Q[s][a] += alpha * (target - Q[s][a])
+            Q[s][a] += alpha_t * (target - Q[s][a])
 
             s = ns
             a = na
