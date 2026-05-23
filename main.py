@@ -82,7 +82,7 @@ def main():
         description="3D UAV solar inspection MDP with Value Iteration, Q-learning, and SARSA"
     )
     parser.add_argument("--scenario", default="data/scenario.json")
-    parser.add_argument("--episodes", type=int, default=6000)
+    parser.add_argument("--episodes", type=int, default=30000)
     parser.add_argument("--eval-episodes", type=int, default=300)
     parser.add_argument("--output-dir", default="results")
     parser.add_argument("--alpha", type=float, default=0.12)
