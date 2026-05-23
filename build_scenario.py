@@ -506,7 +506,7 @@ def main() -> None:
     parser.add_argument("--region-keyword", default=None, help="Optional Korean address keyword such as 나주, 광주, 전남")
     parser.add_argument("--use-vworld", action="store_true", help="Use VWorld API to create no-fly/restricted cells")
     parser.add_argument("--use-kma", action="store_true", help="Use KMA API to set initial wind")
-    parser.add_argument("--wind", default="EastWind", choices=["Calm", "EastWind", "NorthWind"], help="Manual wind if --use-kma is not used")
+    parser.add_argument("--wind", default="Calm", choices=["Calm", "EastWind", "NorthWind"], help="Manual wind if --use-kma is not used")
     parser.add_argument("--targets", type=int, default=3)
     parser.add_argument("--output", default="data/scenario.json")
     args = parser.parse_args()

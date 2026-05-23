@@ -19,11 +19,6 @@
       3,
       0,
       1
-    ],
-    [
-      2,
-      0,
-      1
     ]
   ],
   "charging_pads": [
@@ -38,35 +33,8 @@
       0
     ]
   ],
-  "no_fly_cells": [
-    [
-      1,
-      3,
-      0
-    ],
-    [
-      1,
-      3,
-      1
-    ],
-    [
-      1,
-      3,
-      2
-    ]
-  ],
-  "restricted_cells": [
-    [
-      0,
-      1,
-      1
-    ],
-    [
-      3,
-      2,
-      1
-    ]
-  ],
+  "no_fly_cells": [],
+  "restricted_cells": [],
   "initial_wind": "Calm",
   "wind_states": [
     "Calm",
@@ -137,16 +105,6 @@
           0,
           1
         ]
-      },
-      {
-        "name": "동명실크발전소",
-        "lat": 35.16063123,
-        "lon": 128.1694258,
-        "grid_cell": [
-          2,
-          0,
-          1
-        ]
       }
     ],
     "solar_bbox": [
@@ -157,58 +115,8 @@
     ],
     "solar_source_rows_after_filter": 30,
     "region_keyword": null,
-    "vworld_mode": "api_polygon_to_grid",
-    "vworld_layers": {
-      "no_fly": "LT_C_AISPRHC",
-      "restricted": "LT_C_AISRESC"
-    },
-    "vworld_raw_files": [
-      "data/raw/vworld_nofly.json",
-      "data/raw/vworld_restricted.json"
-    ],
-    "vworld_feature_counts": {
-      "no_fly": 11,
-      "restricted": 48
-    },
-    "vworld_cells_2d": {
-      "no_fly": [
-        [
-          1,
-          3
-        ]
-      ],
-      "restricted": [
-        [
-          0,
-          1
-        ],
-        [
-          3,
-          2
-        ]
-      ]
-    },
-    "weather_mode": "kma_api",
-    "kma_obs": {
-      "PTY": "0",
-      "REH": "93",
-      "RN1": "0",
-      "T1H": "13.7",
-      "UUU": "-0.2",
-      "VEC": "14",
-      "VVV": "-1.1",
-      "WSD": "1.2"
-    },
-    "kma_grid": [
-      72,
-      106
-    ],
-    "base_date": "20260523",
-    "base_time": "2200",
-    "mission_center": [
-      36.596461515,
-      127.68625215
-    ],
-    "kma_endpoint": "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst"
+    "vworld_mode": "not_used",
+    "weather_mode": "manual",
+    "manual_wind": "Calm"
   }
 }
