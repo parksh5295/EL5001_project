@@ -51,17 +51,20 @@ def value_iteration(env: UAVSolarEnv, gamma: float = 0.95, theta: float = 1e-5, 
     states = reachable_states(env)
     V: Dict[State, float] = {s: 0.0 for s in states}
 
+    def expected_action_value(state: State, action: str) -> float:
+        """Bellman expectation over stochastic exogenous transitions."""
+        total = 0.0
+        for p, ns, r, done, _ in env.transition_distribution(state, action):
+            total += p * (r + (0.0 if done else gamma * V.get(ns, 0.0)))
+        return total
+
     for iteration in range(max_iter):
         delta = 0.0
         for s in states:
             old_v = V[s]
             action_values = []
             for a in env.actions:
-                # DP baseline uses expected planning with a deterministic exogenous approximation
-                # for speed: wind and queues remain at their current labels during planning.
-                ns, r, done, _ = env._deterministic_part(s, a, s[4], s[5], s[6])
-                v = r + (0.0 if done else gamma * V.get(ns, 0.0))
-                action_values.append(v)
+                action_values.append(expected_action_value(s, a))
             V[s] = max(action_values)
             delta = max(delta, abs(old_v - V[s]))
         if delta < theta:
@@ -72,8 +75,7 @@ def value_iteration(env: UAVSolarEnv, gamma: float = 0.95, theta: float = 1e-5, 
         best_a = None
         best_v = -float("inf")
         for a in env.actions:
-            ns, r, done, _ = env._deterministic_part(s, a, s[4], s[5], s[6])
-            v = r + (0.0 if done else gamma * V.get(ns, 0.0))
+            v = expected_action_value(s, a)
             if v > best_v:
                 best_v = v
                 best_a = a
