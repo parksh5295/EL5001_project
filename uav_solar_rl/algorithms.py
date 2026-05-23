@@ -12,8 +12,8 @@ QTable = Dict[State, Dict[str, float]]
 Policy = Dict[State, str]
 
 
-def make_q(actions: List[str]) -> QTable:
-    return defaultdict(lambda: {a: 0.0 for a in actions})
+def make_q(actions: List[str], initial_value: float = 0.0) -> QTable:
+    return defaultdict(lambda: {a: float(initial_value) for a in actions})
 
 
 def greedy_action(q_values: Dict[str, float], rng: random.Random | None = None) -> str:
@@ -91,13 +91,16 @@ def value_iteration(env: UAVSolarEnv, gamma: float = 0.95, theta: float = 1e-5, 
 
 
 def q_learning(env_factory: Callable[[], UAVSolarEnv], episodes: int = 6000, alpha: float = 0.12, gamma: float = 0.95,
-               epsilon_start: float = 1.0, epsilon_end: float = 0.05, seed: int = 1) -> QTable:
+               epsilon_start: float = 1.0, epsilon_end: float = 0.05, alpha_end: float = 0.03,
+               optimistic_init: float = 0.0, seed: int = 1) -> QTable:
     rng = random.Random(seed)
     env = env_factory()
-    Q = make_q(env.actions)
+    Q = make_q(env.actions, initial_value=optimistic_init)
 
     for ep in range(episodes):
-        epsilon = max(epsilon_end, epsilon_start * (1 - ep / episodes))
+        frac = ep / max(1, episodes)
+        epsilon = max(epsilon_end, epsilon_start * (1 - frac))
+        alpha_t = max(alpha_end, alpha * (1 - frac))
         s = env.reset()
         done = False
         while not done:
@@ -105,19 +108,22 @@ def q_learning(env_factory: Callable[[], UAVSolarEnv], episodes: int = 6000, alp
             result = env.step(a)
             ns, r, done = result.next_state, result.reward, result.done
             best_next = max(Q[ns].values())
-            Q[s][a] += alpha * (r + (0.0 if done else gamma * best_next) - Q[s][a])
+            Q[s][a] += alpha_t * (r + (0.0 if done else gamma * best_next) - Q[s][a])
             s = ns
     return Q
 
 
 def sarsa(env_factory: Callable[[], UAVSolarEnv], episodes: int = 6000, alpha: float = 0.12, gamma: float = 0.95,
-          epsilon_start: float = 1.0, epsilon_end: float = 0.05, seed: int = 2) -> QTable:
+          epsilon_start: float = 1.0, epsilon_end: float = 0.05, alpha_end: float = 0.03,
+          optimistic_init: float = 0.0, seed: int = 2) -> QTable:
     rng = random.Random(seed)
     env = env_factory()
-    Q = make_q(env.actions)
+    Q = make_q(env.actions, initial_value=optimistic_init)
 
     for ep in range(episodes):
-        epsilon = max(epsilon_end, epsilon_start * (1 - ep / episodes))
+        frac = ep / max(1, episodes)
+        epsilon = max(epsilon_end, epsilon_start * (1 - frac))
+        alpha_t = max(alpha_end, alpha * (1 - frac))
         s = env.reset()
         a = epsilon_greedy(Q, s, env.actions, epsilon, rng)
         done = False
@@ -126,7 +132,7 @@ def sarsa(env_factory: Callable[[], UAVSolarEnv], episodes: int = 6000, alpha: f
             ns, r, done = result.next_state, result.reward, result.done
             na = epsilon_greedy(Q, ns, env.actions, epsilon, rng)
             target = r + (0.0 if done else gamma * Q[ns][na])
-            Q[s][a] += alpha * (target - Q[s][a])
+            Q[s][a] += alpha_t * (target - Q[s][a])
             s, a = ns, na
     return Q
 
@@ -136,6 +142,17 @@ def q_to_policy(Q: QTable, actions: List[str]) -> Policy:
     for s, q_values in Q.items():
         policy[s] = max(actions, key=lambda a: q_values[a])
     return policy
+
+
+def greedy_policy_from_q(Q: QTable, actions: List[str], seed: int = 0) -> Callable[[State], str]:
+    """Create a greedy policy with random tie-breaking over equal Q-values."""
+    rng = random.Random(seed)
+
+    def policy_fn(state: State) -> str:
+        # defaultdict-based Q returns initialized action values for unseen states.
+        return greedy_action(Q[state], rng)
+
+    return policy_fn
 
 
 def evaluate_policy(env_factory: Callable[[], UAVSolarEnv], policy_fn: Callable[[State], str], episodes: int = 300, seed: int = 7):

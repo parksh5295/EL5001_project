@@ -5,3 +5,5 @@ results/*.png
 results/*.csv
 results/*.json
 .DS_Store
+
+run.txt

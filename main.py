@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 
 from uav_solar_rl.algorithms import (
     evaluate_policy,
+    greedy_policy_from_q,
     q_learning,
-    q_to_policy,
     rollout,
     sarsa,
     value_iteration,
@@ -85,6 +85,11 @@ def main():
     parser.add_argument("--episodes", type=int, default=6000)
     parser.add_argument("--eval-episodes", type=int, default=300)
     parser.add_argument("--output-dir", default="results")
+    parser.add_argument("--alpha", type=float, default=0.12)
+    parser.add_argument("--alpha-end", type=float, default=0.03)
+    parser.add_argument("--epsilon-start", type=float, default=1.0)
+    parser.add_argument("--epsilon-end", type=float, default=0.05)
+    parser.add_argument("--optimistic-init", type=float, default=0.0)
     args = parser.parse_args()
 
     scenario_path = args.scenario
@@ -105,18 +110,38 @@ def main():
     vi_metrics["algorithm"] = "Value Iteration"
 
     print("Training Q-learning...")
-    Q = q_learning(factory, episodes=args.episodes, alpha=0.12, gamma=0.95, seed=1)
-    q_policy = q_to_policy(Q, env.actions)
+    Q = q_learning(
+        factory,
+        episodes=args.episodes,
+        alpha=args.alpha,
+        gamma=0.95,
+        epsilon_start=args.epsilon_start,
+        epsilon_end=args.epsilon_end,
+        alpha_end=args.alpha_end,
+        optimistic_init=args.optimistic_init,
+        seed=1,
+    )
+    q_policy = greedy_policy_from_q(Q, env.actions, seed=101)
     q_metrics = evaluate_policy(
-        factory, lambda s: q_policy.get(s, "hover"), episodes=args.eval_episodes
+        factory, q_policy, episodes=args.eval_episodes
     )
     q_metrics["algorithm"] = "Q-learning"
 
     print("Training SARSA...")
-    QS = sarsa(factory, episodes=args.episodes, alpha=0.12, gamma=0.95, seed=2)
-    sarsa_policy = q_to_policy(QS, env.actions)
+    QS = sarsa(
+        factory,
+        episodes=args.episodes,
+        alpha=args.alpha,
+        gamma=0.95,
+        epsilon_start=args.epsilon_start,
+        epsilon_end=args.epsilon_end,
+        alpha_end=args.alpha_end,
+        optimistic_init=args.optimistic_init,
+        seed=2,
+    )
+    sarsa_policy = greedy_policy_from_q(QS, env.actions, seed=202)
     sarsa_metrics = evaluate_policy(
-        factory, lambda s: sarsa_policy.get(s, "hover"), episodes=args.eval_episodes
+        factory, sarsa_policy, episodes=args.eval_episodes
     )
     sarsa_metrics["algorithm"] = "SARSA"
 
@@ -128,7 +153,7 @@ def main():
     plot_metrics(rows, out_dir / "metrics.csv")
 
     sample = rollout(
-        UAVSolarEnv(scenario_path, seed=100), lambda s: q_policy.get(s, "hover")
+        UAVSolarEnv(scenario_path, seed=100), q_policy
     )
     print_rollout(sample)
 
