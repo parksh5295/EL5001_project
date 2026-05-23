@@ -1,20 +1,104 @@
 {
-  "grid_size": [4, 4, 3],
-  "base": [0, 0, 0],
-  "targets": [[1, 2, 1], [3, 1, 1], [2, 3, 2]],
-  "charging_pads": [[0, 3, 0], [3, 0, 0]],
-  "no_fly_cells": [[2, 2, 0], [2, 2, 1], [2, 2, 2]],
-  "restricted_cells": [[1, 1, 1], [3, 2, 1]],
-  "initial_wind": "EastWind",
-  "wind_states": ["Calm", "EastWind", "NorthWind"],
+  "grid_size": [
+    4,
+    4,
+    3
+  ],
+  "base": [
+    0,
+    0,
+    0
+  ],
+  "targets": [
+    [
+      0,
+      2,
+      1
+    ],
+    [
+      3,
+      0,
+      1
+    ],
+    [
+      2,
+      0,
+      1
+    ]
+  ],
+  "charging_pads": [
+    [
+      0,
+      3,
+      0
+    ],
+    [
+      3,
+      0,
+      0
+    ]
+  ],
+  "no_fly_cells": [
+    [
+      1,
+      3,
+      0
+    ],
+    [
+      1,
+      3,
+      1
+    ],
+    [
+      1,
+      3,
+      2
+    ]
+  ],
+  "restricted_cells": [
+    [
+      0,
+      1,
+      1
+    ],
+    [
+      3,
+      2,
+      1
+    ]
+  ],
+  "initial_wind": "Calm",
+  "wind_states": [
+    "Calm",
+    "EastWind",
+    "NorthWind"
+  ],
   "wind_transition": {
-    "Calm": {"Calm": 0.70, "EastWind": 0.15, "NorthWind": 0.15},
-    "EastWind": {"EastWind": 0.60, "Calm": 0.30, "NorthWind": 0.10},
-    "NorthWind": {"NorthWind": 0.60, "Calm": 0.30, "EastWind": 0.10}
+    "Calm": {
+      "Calm": 0.7,
+      "EastWind": 0.15,
+      "NorthWind": 0.15
+    },
+    "EastWind": {
+      "EastWind": 0.6,
+      "Calm": 0.3,
+      "NorthWind": 0.1
+    },
+    "NorthWind": {
+      "NorthWind": 0.6,
+      "Calm": 0.3,
+      "EastWind": 0.1
+    }
   },
   "queue_transition": {
-    "Short": {"Short": 0.70, "Long": 0.30},
-    "Long": {"Long": 0.60, "Short": 0.40}
+    "Short": {
+      "Short": 0.7,
+      "Long": 0.3
+    },
+    "Long": {
+      "Long": 0.6,
+      "Short": 0.4
+    }
   },
   "max_battery": 10,
   "max_steps": 120,
@@ -30,5 +114,101 @@
     "no_fly_violation": -80,
     "battery_depletion": -80,
     "invalid_action_cost": -4
+  },
+  "metadata": {
+    "data_grounding": "solar_csv + VWorld_API + KMA_API_or_manual_wind",
+    "solar_rows_used": [
+      {
+        "name": "씨케이테크 태양광발전소",
+        "lat": 37.7370749528,
+        "lon": 126.8320456709,
+        "grid_cell": [
+          0,
+          2,
+          1
+        ]
+      },
+      {
+        "name": "미래신합섬주식회사태양광발전소",
+        "lat": 35.91501883,
+        "lon": 128.8904968,
+        "grid_cell": [
+          3,
+          0,
+          1
+        ]
+      },
+      {
+        "name": "동명실크발전소",
+        "lat": 35.16063123,
+        "lon": 128.1694258,
+        "grid_cell": [
+          2,
+          0,
+          1
+        ]
+      }
+    ],
+    "solar_bbox": [
+      126.120734105,
+      34.729882144499996,
+      129.251770195,
+      38.46304088550001
+    ],
+    "solar_source_rows_after_filter": 30,
+    "region_keyword": null,
+    "vworld_mode": "api_polygon_to_grid",
+    "vworld_layers": {
+      "no_fly": "LT_C_AISPRHC",
+      "restricted": "LT_C_AISRESC"
+    },
+    "vworld_raw_files": [
+      "data/raw/vworld_nofly.json",
+      "data/raw/vworld_restricted.json"
+    ],
+    "vworld_feature_counts": {
+      "no_fly": 11,
+      "restricted": 48
+    },
+    "vworld_cells_2d": {
+      "no_fly": [
+        [
+          1,
+          3
+        ]
+      ],
+      "restricted": [
+        [
+          0,
+          1
+        ],
+        [
+          3,
+          2
+        ]
+      ]
+    },
+    "weather_mode": "kma_api",
+    "kma_obs": {
+      "PTY": "0",
+      "REH": "93",
+      "RN1": "0",
+      "T1H": "13.7",
+      "UUU": "-0.2",
+      "VEC": "14",
+      "VVV": "-1.1",
+      "WSD": "1.2"
+    },
+    "kma_grid": [
+      72,
+      106
+    ],
+    "base_date": "20260523",
+    "base_time": "2200",
+    "mission_center": [
+      36.596461515,
+      127.68625215
+    ],
+    "kma_endpoint": "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst"
   }
 }
