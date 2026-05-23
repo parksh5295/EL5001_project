@@ -1,0 +1,34 @@
+{
+  "grid_size": [4, 4, 3],
+  "base": [0, 0, 0],
+  "targets": [[1, 2, 1], [3, 1, 1], [2, 3, 2]],
+  "charging_pads": [[0, 3, 0], [3, 0, 0]],
+  "no_fly_cells": [[2, 2, 0], [2, 2, 1], [2, 2, 2]],
+  "restricted_cells": [[1, 1, 1], [3, 2, 1]],
+  "initial_wind": "EastWind",
+  "wind_states": ["Calm", "EastWind", "NorthWind"],
+  "wind_transition": {
+    "Calm": {"Calm": 0.70, "EastWind": 0.15, "NorthWind": 0.15},
+    "EastWind": {"EastWind": 0.60, "Calm": 0.30, "NorthWind": 0.10},
+    "NorthWind": {"NorthWind": 0.60, "Calm": 0.30, "EastWind": 0.10}
+  },
+  "queue_transition": {
+    "Short": {"Short": 0.70, "Long": 0.30},
+    "Long": {"Long": 0.60, "Short": 0.40}
+  },
+  "max_battery": 10,
+  "max_steps": 120,
+  "reward": {
+    "inspect_new_target": 25,
+    "finish_all_and_return_base": 100,
+    "step_cost": -1,
+    "move_battery_cost": -1,
+    "ascend_extra_battery_cost": -1,
+    "charge_short_queue_cost": -3,
+    "charge_long_queue_cost": -12,
+    "restricted_area_cost": -10,
+    "no_fly_violation": -80,
+    "battery_depletion": -80,
+    "invalid_action_cost": -4
+  }
+}

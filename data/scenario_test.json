@@ -1,0 +1,137 @@
+{
+  "grid_size": [
+    4,
+    4,
+    3
+  ],
+  "base": [
+    0,
+    0,
+    0
+  ],
+  "targets": [
+    [
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      1
+    ],
+    [
+      3,
+      3,
+      1
+    ]
+  ],
+  "charging_pads": [
+    [
+      0,
+      3,
+      0
+    ],
+    [
+      3,
+      0,
+      0
+    ]
+  ],
+  "no_fly_cells": [],
+  "restricted_cells": [],
+  "initial_wind": "EastWind",
+  "wind_states": [
+    "Calm",
+    "EastWind",
+    "NorthWind"
+  ],
+  "wind_transition": {
+    "Calm": {
+      "Calm": 0.7,
+      "EastWind": 0.15,
+      "NorthWind": 0.15
+    },
+    "EastWind": {
+      "EastWind": 0.6,
+      "Calm": 0.3,
+      "NorthWind": 0.1
+    },
+    "NorthWind": {
+      "NorthWind": 0.6,
+      "Calm": 0.3,
+      "EastWind": 0.1
+    }
+  },
+  "queue_transition": {
+    "Short": {
+      "Short": 0.7,
+      "Long": 0.3
+    },
+    "Long": {
+      "Long": 0.6,
+      "Short": 0.4
+    }
+  },
+  "max_battery": 10,
+  "max_steps": 120,
+  "reward": {
+    "inspect_new_target": 25,
+    "finish_all_and_return_base": 100,
+    "step_cost": -1,
+    "move_battery_cost": -1,
+    "ascend_extra_battery_cost": -1,
+    "charge_short_queue_cost": -3,
+    "charge_long_queue_cost": -12,
+    "restricted_area_cost": -10,
+    "no_fly_violation": -80,
+    "battery_depletion": -80,
+    "invalid_action_cost": -4
+  },
+  "metadata": {
+    "data_grounding": "solar_csv + VWorld_API + KMA_API_or_manual_wind",
+    "solar_rows_used": [
+      {
+        "name": "Sample A",
+        "lat": 35.1,
+        "lon": 127.1,
+        "grid_cell": [
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "name": "Sample B",
+        "lat": 35.14,
+        "lon": 127.16,
+        "grid_cell": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "Sample C",
+        "lat": 35.18,
+        "lon": 127.2,
+        "grid_cell": [
+          3,
+          3,
+          1
+        ]
+      }
+    ],
+    "solar_bbox": [
+      127.085,
+      35.088,
+      127.215,
+      35.192
+    ],
+    "solar_source_rows_after_filter": 4,
+    "region_keyword": null,
+    "vworld_mode": "not_used",
+    "weather_mode": "manual",
+    "manual_wind": "EastWind"
+  }
+}
