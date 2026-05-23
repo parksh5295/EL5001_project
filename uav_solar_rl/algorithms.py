@@ -50,11 +50,18 @@ def reachable_states(env: UAVSolarEnv, limit: int = 20000) -> List[State]:
 def value_iteration(env: UAVSolarEnv, gamma: float = 0.95, theta: float = 1e-5, max_iter: int = 500) -> Tuple[Policy, Dict[State, float]]:
     states = reachable_states(env)
     V: Dict[State, float] = {s: 0.0 for s in states}
+    transition_cache: Dict[Tuple[State, str], List[Tuple[float, State, float, bool]]] = {}
+
+    for s in states:
+        for a in env.actions:
+            transition_cache[(s, a)] = [
+                (p, ns, r, done) for p, ns, r, done, _ in env.transition_distribution(s, a)
+            ]
 
     def expected_action_value(state: State, action: str) -> float:
         """Bellman expectation over stochastic exogenous transitions."""
         total = 0.0
-        for p, ns, r, done, _ in env.transition_distribution(state, action):
+        for p, ns, r, done in transition_cache[(state, action)]:
             total += p * (r + (0.0 if done else gamma * V.get(ns, 0.0)))
         return total
 
