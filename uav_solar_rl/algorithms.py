@@ -22,7 +22,9 @@ def greedy_action(q_values: Dict[str, float], rng: random.Random | None = None) 
     return (rng or random).choice(best)
 
 
-def epsilon_greedy(Q: QTable, state: State, actions: List[str], epsilon: float, rng: random.Random) -> str:
+def epsilon_greedy(
+    Q: QTable, state: State, actions: List[str], epsilon: float, rng: random.Random
+) -> str:
     if rng.random() < epsilon:
         return rng.choice(actions)
     return greedy_action(Q[state], rng)
@@ -47,15 +49,20 @@ def reachable_states(env: UAVSolarEnv, limit: int = 20000) -> List[State]:
     return list(seen)
 
 
-def value_iteration(env: UAVSolarEnv, gamma: float = 0.95, theta: float = 1e-5, max_iter: int = 500) -> Tuple[Policy, Dict[State, float]]:
+def value_iteration(
+    env: UAVSolarEnv, gamma: float = 0.95, theta: float = 1e-5, max_iter: int = 500
+) -> Tuple[Policy, Dict[State, float]]:
     states = reachable_states(env)
     V: Dict[State, float] = {s: 0.0 for s in states}
-    transition_cache: Dict[Tuple[State, str], List[Tuple[float, State, float, bool]]] = {}
+    transition_cache: Dict[
+        Tuple[State, str], List[Tuple[float, State, float, bool]]
+    ] = {}
 
     for s in states:
         for a in env.actions:
             transition_cache[(s, a)] = [
-                (p, ns, r, done) for p, ns, r, done, _ in env.transition_distribution(s, a)
+                (p, ns, r, done)
+                for p, ns, r, done, _ in env.transition_distribution(s, a)
             ]
 
     def expected_action_value(state: State, action: str) -> float:
@@ -90,44 +97,124 @@ def value_iteration(env: UAVSolarEnv, gamma: float = 0.95, theta: float = 1e-5, 
     return policy, V
 
 
-def q_learning(env_factory: Callable[[], UAVSolarEnv], episodes: int = 6000, alpha: float = 0.12, gamma: float = 0.95,
-               epsilon_start: float = 1.0, epsilon_end: float = 0.05, seed: int = 1) -> QTable:
+def q_learning(
+    env_factory: Callable[[], UAVSolarEnv],
+    episodes: int = 30000,
+    alpha: float = 0.10,
+    gamma: float = 0.95,
+    epsilon_start: float = 1.0,
+    epsilon_end: float = 0.05,
+    epsilon_decay: float = 0.9995,
+    seed: int = 1,
+) -> QTable:
+
     rng = random.Random(seed)
+
     env = env_factory()
+
     Q = make_q(env.actions)
 
+    epsilon = epsilon_start
+
     for ep in range(episodes):
-        epsilon = max(epsilon_end, epsilon_start * (1 - ep / episodes))
+
         s = env.reset()
+
         done = False
+
         while not done:
-            a = epsilon_greedy(Q, s, env.actions, epsilon, rng)
+
+            a = epsilon_greedy(
+                Q,
+                s,
+                env.actions,
+                epsilon,
+                rng,
+            )
+
             result = env.step(a)
-            ns, r, done = result.next_state, result.reward, result.done
+
+            ns = result.next_state
+            r = result.reward
+            done = result.done
+
             best_next = max(Q[ns].values())
-            Q[s][a] += alpha * (r + (0.0 if done else gamma * best_next) - Q[s][a])
+
+            target = r + (0.0 if done else gamma * best_next)
+
+            Q[s][a] += alpha * (target - Q[s][a])
+
             s = ns
+
+        epsilon = max(
+            epsilon_end,
+            epsilon * epsilon_decay,
+        )
+
     return Q
 
 
-def sarsa(env_factory: Callable[[], UAVSolarEnv], episodes: int = 6000, alpha: float = 0.12, gamma: float = 0.95,
-          epsilon_start: float = 1.0, epsilon_end: float = 0.05, seed: int = 2) -> QTable:
+def sarsa(
+    env_factory: Callable[[], UAVSolarEnv],
+    episodes: int = 30000,
+    alpha: float = 0.10,
+    gamma: float = 0.95,
+    epsilon_start: float = 1.0,
+    epsilon_end: float = 0.05,
+    epsilon_decay: float = 0.9997,
+    seed: int = 2,
+) -> QTable:
+
     rng = random.Random(seed)
+
     env = env_factory()
+
     Q = make_q(env.actions)
 
+    epsilon = epsilon_start
+
     for ep in range(episodes):
-        epsilon = max(epsilon_end, epsilon_start * (1 - ep / episodes))
+
         s = env.reset()
-        a = epsilon_greedy(Q, s, env.actions, epsilon, rng)
+
+        a = epsilon_greedy(
+            Q,
+            s,
+            env.actions,
+            epsilon,
+            rng,
+        )
+
         done = False
+
         while not done:
+
             result = env.step(a)
-            ns, r, done = result.next_state, result.reward, result.done
-            na = epsilon_greedy(Q, ns, env.actions, epsilon, rng)
+
+            ns = result.next_state
+            r = result.reward
+            done = result.done
+
+            na = epsilon_greedy(
+                Q,
+                ns,
+                env.actions,
+                epsilon,
+                rng,
+            )
+
             target = r + (0.0 if done else gamma * Q[ns][na])
+
             Q[s][a] += alpha * (target - Q[s][a])
-            s, a = ns, na
+
+            s = ns
+            a = na
+
+        epsilon = max(
+            epsilon_end,
+            epsilon * epsilon_decay,
+        )
+
     return Q
 
 
@@ -138,11 +225,21 @@ def q_to_policy(Q: QTable, actions: List[str]) -> Policy:
     return policy
 
 
-def evaluate_policy(env_factory: Callable[[], UAVSolarEnv], policy_fn: Callable[[State], str], episodes: int = 300, seed: int = 7):
+def evaluate_policy(
+    env_factory: Callable[[], UAVSolarEnv],
+    policy_fn: Callable[[State], str],
+    episodes: int = 300,
+    seed: int = 7,
+):
     rng = random.Random(seed)
     metrics = {
-        "return": [], "steps": [], "success": 0, "battery_failure": 0,
-        "no_fly_violation": 0, "restricted_visits": 0, "charged": 0,
+        "return": [],
+        "steps": [],
+        "success": 0,
+        "battery_failure": 0,
+        "no_fly_violation": 0,
+        "restricted_visits": 0,
+        "charged": 0,
     }
 
     for ep in range(episodes):
@@ -192,7 +289,16 @@ def rollout(env: UAVSolarEnv, policy_fn: Callable[[State], str], max_steps: int 
     for t in range(max_steps):
         a = policy_fn(s)
         result = env.step(a)
-        rows.append({"t": t, "state": s, "action": a, "reward": result.reward, "next_state": result.next_state, "info": result.info})
+        rows.append(
+            {
+                "t": t,
+                "state": s,
+                "action": a,
+                "reward": result.reward,
+                "next_state": result.next_state,
+                "info": result.info,
+            }
+        )
         s = result.next_state
         if result.done:
             break

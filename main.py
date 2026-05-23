@@ -82,7 +82,7 @@ def main():
         description="3D UAV solar inspection MDP with Value Iteration, Q-learning, and SARSA"
     )
     parser.add_argument("--scenario", default="data/scenario.json")
-    parser.add_argument("--episodes", type=int, default=6000)
+    parser.add_argument("--episodes", type=int, default=30000)
     parser.add_argument("--eval-episodes", type=int, default=300)
     parser.add_argument("--output-dir", default="results")
     args = parser.parse_args()
@@ -105,7 +105,7 @@ def main():
     vi_metrics["algorithm"] = "Value Iteration"
 
     print("Training Q-learning...")
-    Q = q_learning(factory, episodes=args.episodes, alpha=0.12, gamma=0.95, seed=1)
+    Q = q_learning(factory, episodes=args.episodes, alpha=0.10, gamma=0.95, seed=1)
     q_policy = q_to_policy(Q, env.actions)
     q_metrics = evaluate_policy(
         factory, lambda s: q_policy.get(s, "hover"), episodes=args.eval_episodes
@@ -113,7 +113,7 @@ def main():
     q_metrics["algorithm"] = "Q-learning"
 
     print("Training SARSA...")
-    QS = sarsa(factory, episodes=args.episodes, alpha=0.12, gamma=0.95, seed=2)
+    QS = sarsa(factory, episodes=args.episodes, alpha=0.08, gamma=0.95, seed=2)
     sarsa_policy = q_to_policy(QS, env.actions)
     sarsa_metrics = evaluate_policy(
         factory, lambda s: sarsa_policy.get(s, "hover"), episodes=args.eval_episodes

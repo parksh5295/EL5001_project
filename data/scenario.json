@@ -12,12 +12,12 @@
   "targets": [
     [
       0,
-      2,
+      0,
       1
     ],
     [
-      3,
-      0,
+      1,
+      2,
       1
     ]
   ],
@@ -68,7 +68,7 @@
       "Short": 0.4
     }
   },
-  "max_battery": 10,
+  "max_battery": 16,
   "max_steps": 120,
   "reward": {
     "inspect_new_target": 25,
@@ -87,34 +87,24 @@
     "data_grounding": "solar_csv + VWorld_API + KMA_API_or_manual_wind",
     "solar_rows_used": [
       {
-        "name": "씨케이테크 태양광발전소",
-        "lat": 37.7370749528,
-        "lon": 126.8320456709,
+        "name": "(유)나주산업 태양광발전소",
+        "lat": 35.35971019,
+        "lon": 126.4406577,
         "grid_cell": [
           0,
-          2,
-          1
-        ]
-      },
-      {
-        "name": "미래신합섬주식회사태양광발전소",
-        "lat": 35.91501883,
-        "lon": 128.8904968,
-        "grid_cell": [
-          3,
           0,
           1
         ]
       }
     ],
     "solar_bbox": [
-      126.120734105,
-      34.729882144499996,
-      129.251770195,
-      38.46304088550001
+      126.4306577,
+      35.34971019,
+      126.45065770000001,
+      35.36971019
     ],
-    "solar_source_rows_after_filter": 30,
-    "region_keyword": null,
+    "solar_source_rows_after_filter": 1,
+    "region_keyword": "나주",
     "vworld_mode": "not_used",
     "weather_mode": "manual",
     "manual_wind": "Calm"
