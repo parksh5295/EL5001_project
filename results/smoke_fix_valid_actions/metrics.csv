@@ -1,0 +1,4 @@
+algorithm,mean_return,std_return,success_rate,avg_steps,battery_failures,no_fly_violations,restricted_visits,charge_count
+Value Iteration,111.15,16.392147510317248,1.0,18.275,0,0,0,33
+Q-learning,-101.35,15.763169097614858,0.0,16.25,80,0,0,8
+SARSA,-108.55,15.44498300419913,0.0,16.9375,80,0,0,12

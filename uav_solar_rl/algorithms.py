@@ -7,22 +7,53 @@ from typing import Callable, Dict, List, Tuple
 import numpy as np
 
 def get_valid_actions(env, state):
+    """Return a safe candidate action set without mutating env state."""
+    x, y, z, battery, wind, _q1, _q2, mask = state
+    pos = (x, y, z)
     valid = []
 
-    old_state = env.state
-
     for action in env.actions:
-        env.state = state
-        result = env.step(action)
+        ok = True
 
-        if not result.info.get("invalid_action", False):
+        if action in ["move_N", "move_S", "move_E", "move_W", "ascend", "descend"]:
+            moved = env.move_position(pos, action)
+            if not env.in_bounds(moved):
+                ok = False
+            else:
+                # deterministic drift uses the current wind in state
+                next_pos = moved
+                if wind != "Calm":
+                    drifted = env.wind_drift_position(moved, wind)
+                    if env.in_bounds(drifted):
+                        next_pos = drifted
+                # mask actions that immediately violate no-fly
+                if next_pos in env.no_fly_cells:
+                    ok = False
+
+        elif action == "charge":
+            if pos not in env.charging_pads:
+                ok = False
+            elif battery >= env.max_battery:
+                ok = False
+
+        elif action == "inspect":
+            if pos not in env.target_to_bit:
+                ok = False
+            else:
+                bit = env.target_to_bit[pos]
+                if mask & (1 << bit):
+                    ok = False
+
+        elif action == "hover":
+            # disallow hover if it would immediately fail by battery depletion
+            if battery <= 0:
+                ok = False
+
+        if ok:
             valid.append(action)
 
-    env.state = old_state
-
-    if len(valid) == 0:
-        valid = ["hover"]
-
+    if not valid:
+        return ["hover"]
     return valid
 
 
