@@ -18,6 +18,7 @@ import argparse
 import json
 import math
 import os
+from collections import deque
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable
@@ -54,10 +55,10 @@ def pick_column(df: pd.DataFrame, candidates: list[str]) -> str | None:
 def load_solar_csv(path: str) -> pd.DataFrame:
     for enc in ["utf-8-sig", "utf-8", "cp949", "euc-kr"]:
         try:
-            return pd.read_csv(path, encoding=enc)
+            return pd.read_csv(path, encoding=enc, low_memory=False)
         except UnicodeDecodeError:
             continue
-    return pd.read_csv(path)
+    return pd.read_csv(path, low_memory=False)
 
 
 def solar_targets_from_dataframe(
@@ -157,6 +158,52 @@ def solar_targets_from_dataframe(
         "region_keyword": region_keyword,
     }
     return targets, metadata
+
+
+def _parse_region_candidates(region_keyword: str | None, fallback_keywords: str | None) -> list[str | None]:
+    candidates: list[str | None] = []
+    if region_keyword:
+        candidates.append(region_keyword)
+    if fallback_keywords:
+        for kw in fallback_keywords.split(","):
+            clean = kw.strip()
+            if clean and clean not in candidates:
+                candidates.append(clean)
+    if not candidates:
+        candidates.append(None)
+    return candidates
+
+
+def choose_targets_with_region_fallback(
+    solar_df: pd.DataFrame,
+    max_targets: int,
+    region_keyword: str | None,
+    fallback_keywords: str | None,
+    min_solar_rows: int,
+) -> tuple[list[list[int]], dict[str, Any]]:
+    candidates = _parse_region_candidates(region_keyword, fallback_keywords)
+    best_targets: list[list[int]] | None = None
+    best_meta: dict[str, Any] | None = None
+
+    for kw in candidates:
+        targets, meta = solar_targets_from_dataframe(
+            solar_df,
+            max_targets=max_targets,
+            region_keyword=kw,
+        )
+        rows = int(meta.get("solar_source_rows_after_filter", 0))
+        meta["region_keyword_selected"] = kw
+        if rows >= min_solar_rows:
+            return targets, meta
+        if best_meta is None or rows > int(best_meta.get("solar_source_rows_after_filter", 0)):
+            best_targets, best_meta = targets, meta
+
+    assert best_targets is not None and best_meta is not None
+    best_meta["region_fallback_warning"] = (
+        f"Best candidate has only {best_meta.get('solar_source_rows_after_filter', 0)} rows "
+        f"(required >= {min_solar_rows})."
+    )
+    return best_targets, best_meta
 
 
 def fetch_vworld_layer(layer_code: str, bbox: list[float]) -> dict[str, Any]:
@@ -323,6 +370,121 @@ def vworld_cells(use_vworld: bool, bbox: list[float]) -> tuple[list[list[int]], 
     return no_fly_cells, restricted_cells, meta
 
 
+def _to_2d_set(cells_3d: list[list[int]]) -> set[tuple[int, int]]:
+    return {(int(c[0]), int(c[1])) for c in cells_3d}
+
+
+def _to_3d_set(cells_3d: list[list[int]]) -> set[tuple[int, int, int]]:
+    return {(int(c[0]), int(c[1]), int(c[2])) for c in cells_3d}
+
+
+def _neighbors(pos: tuple[int, int, int], grid_size: list[int]) -> list[tuple[int, int, int]]:
+    x, y, z = pos
+    nx, ny, nz = grid_size
+    cand = [
+        (x + 1, y, z), (x - 1, y, z),
+        (x, y + 1, z), (x, y - 1, z),
+        (x, y, z + 1), (x, y, z - 1),
+    ]
+    return [p for p in cand if 0 <= p[0] < nx and 0 <= p[1] < ny and 0 <= p[2] < nz]
+
+
+def _reachable_from(start: tuple[int, int, int], blocked: set[tuple[int, int, int]], grid_size: list[int]) -> set[tuple[int, int, int]]:
+    if start in blocked:
+        return set()
+    seen = {start}
+    q = deque([start])
+    while q:
+        cur = q.popleft()
+        for nxt in _neighbors(cur, grid_size):
+            if nxt in blocked or nxt in seen:
+                continue
+            seen.add(nxt)
+            q.append(nxt)
+    return seen
+
+
+def relax_and_validate_airspace(
+    no_fly_cells: list[list[int]],
+    restricted_cells: list[list[int]],
+    base: list[int],
+    targets: list[list[int]],
+    charging_pads: list[list[int]],
+    grid_size: list[int],
+    nofly_coverage_limit: float,
+) -> tuple[list[list[int]], list[list[int]], dict[str, Any]]:
+    nx, ny, nz = grid_size
+    nofly2d = _to_2d_set(no_fly_cells)
+    restricted2d = _to_2d_set(restricted_cells)
+    protected2d = {(base[0], base[1])}
+    protected2d |= {(p[0], p[1]) for p in charging_pads}
+    protected2d |= {(t[0], t[1]) for t in targets}
+
+    # Keep mission-critical cells feasible even when VWorld polygon fully covers a tiny grid.
+    nofly2d -= protected2d
+    restricted2d -= nofly2d
+
+    coverage_before = len(nofly2d) / max(1, nx * ny)
+    downgraded = False
+    if coverage_before > nofly_coverage_limit:
+        downgraded = True
+        restricted2d |= nofly2d
+        nofly2d = set()
+
+    # Use middle-altitude no-fly to avoid over-constraining tiny toy grids.
+    no_fly_relaxed: list[list[int]] = [[x, y, 1] for (x, y) in sorted(nofly2d) if nz > 1]
+    restricted_relaxed = expand_to_3d(sorted(restricted2d), altitude_mode="middle")
+
+    blocked = _to_3d_set(no_fly_relaxed)
+    start = (base[0], base[1], base[2])
+    reachable = _reachable_from(start, blocked, grid_size)
+    targets_reachable = all((t[0], t[1], t[2]) in reachable for t in targets)
+
+    meta = {
+        "vworld_relaxation": {
+            "protected_cells_removed_from_nofly_2d": [list(c) for c in sorted(protected2d)],
+            "nofly_2d_coverage_before_relax": coverage_before,
+            "downgraded_nofly_to_restricted_due_to_coverage": downgraded,
+            "nofly_altitude_mode_after_relax": "middle" if nz > 1 else "all",
+            "targets_reachable_from_base_after_relax": targets_reachable,
+        }
+    }
+    return no_fly_relaxed, restricted_relaxed, meta
+
+
+def validate_scenario(
+    scenario: dict[str, Any],
+    min_solar_rows: int,
+    nofly_coverage_limit: float,
+) -> None:
+    grid_size = scenario["grid_size"]
+    nx, ny, _ = grid_size
+    nofly3d = scenario.get("no_fly_cells", [])
+    base = scenario["base"]
+    targets = scenario["targets"]
+    meta = scenario.get("metadata", {})
+
+    base_in_nofly = tuple(base) in _to_3d_set(nofly3d)
+    nofly2d = _to_2d_set(nofly3d)
+    nofly_coverage = len(nofly2d) / max(1, nx * ny)
+    solar_rows = int(meta.get("solar_source_rows_after_filter", 0))
+    reachable = _reachable_from(tuple(base), _to_3d_set(nofly3d), grid_size)
+    targets_reachable = all(tuple(t) in reachable for t in targets)
+
+    errors = []
+    if base_in_nofly:
+        errors.append("base is inside no_fly_cells")
+    if nofly_coverage > nofly_coverage_limit:
+        errors.append(f"no_fly 2D coverage is too high ({nofly_coverage:.2%} > {nofly_coverage_limit:.0%})")
+    if solar_rows < min_solar_rows:
+        errors.append(f"solar_source_rows_after_filter is too small ({solar_rows} < {min_solar_rows})")
+    if not targets_reachable:
+        errors.append("at least one target is unreachable from base under no-fly constraints")
+
+    if errors:
+        raise RuntimeError("Scenario validation failed: " + "; ".join(errors))
+
+
 def latlon_to_kma_grid(lat: float, lon: float) -> tuple[int, int]:
     RE = 6371.00877
     GRID = 5.0
@@ -464,10 +626,12 @@ def build_scenario(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("Use --solar-csv data/solar.csv. Solar targets are built from downloaded real CSV data.")
 
     solar_df = load_solar_csv(args.solar_csv)
-    targets, solar_meta = solar_targets_from_dataframe(
+    targets, solar_meta = choose_targets_with_region_fallback(
         solar_df,
         max_targets=args.targets,
         region_keyword=args.region_keyword,
+        fallback_keywords=args.region_fallback_keywords,
+        min_solar_rows=args.min_solar_rows,
     )
 
     bbox = solar_meta["solar_bbox"]
@@ -475,6 +639,16 @@ def build_scenario(args: argparse.Namespace) -> dict[str, Any]:
     center_lat = (bbox[1] + bbox[3]) / 2
 
     no_fly, restricted, vworld_meta = vworld_cells(args.use_vworld, bbox)
+    charging_pads = [[0, 3, 0], [3, 0, 0]]
+    no_fly, restricted, relax_meta = relax_and_validate_airspace(
+        no_fly_cells=no_fly,
+        restricted_cells=restricted,
+        base=[0, 0, 0],
+        targets=targets,
+        charging_pads=charging_pads,
+        grid_size=GRID_SIZE,
+        nofly_coverage_limit=args.max_nofly_coverage,
+    )
 
     # Protect start/base area so the episode does not fail immediately.
     protected_cells = {
@@ -553,9 +727,15 @@ def build_scenario(args: argparse.Namespace) -> dict[str, Any]:
             "data_grounding": "solar_csv + VWorld_API + KMA_API_or_manual_wind",
             **solar_meta,
             **vworld_meta,
+            **relax_meta,
             **weather_meta,
         },
     }
+    validate_scenario(
+        scenario=scenario,
+        min_solar_rows=args.min_solar_rows,
+        nofly_coverage_limit=args.max_nofly_coverage,
+    )
     return scenario
 
 
@@ -567,6 +747,9 @@ def main() -> None:
     parser.add_argument("--use-kma", action="store_true", help="Use KMA API to set initial wind")
     parser.add_argument("--wind", default="Calm", choices=["Calm", "EastWind", "NorthWind"], help="Manual wind if --use-kma is not used")
     parser.add_argument("--targets", type=int, default=2)
+    parser.add_argument("--region-fallback-keywords", default="전남,광주", help="Comma-separated fallback region keywords")
+    parser.add_argument("--min-solar-rows", type=int, default=3, help="Minimum filtered solar rows required by validation")
+    parser.add_argument("--max-nofly-coverage", type=float, default=0.7, help="Maximum allowed 2D no-fly coverage ratio")
     parser.add_argument("--output", default="data/scenario.json")
     args = parser.parse_args()
 

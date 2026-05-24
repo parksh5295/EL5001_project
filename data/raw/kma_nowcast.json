@@ -12,65 +12,65 @@
             "baseDate": "20260524",
             "baseTime": "1600",
             "category": "PTY",
-            "nx": 74,
-            "ny": 103,
+            "nx": 60,
+            "ny": 100,
             "obsrValue": "0"
           },
           {
             "baseDate": "20260524",
             "baseTime": "1600",
             "category": "REH",
-            "nx": 74,
-            "ny": 103,
+            "nx": 60,
+            "ny": 100,
             "obsrValue": "47"
           },
           {
             "baseDate": "20260524",
             "baseTime": "1600",
             "category": "RN1",
-            "nx": 74,
-            "ny": 103,
+            "nx": 60,
+            "ny": 100,
             "obsrValue": "0"
           },
           {
             "baseDate": "20260524",
             "baseTime": "1600",
             "category": "T1H",
-            "nx": 74,
-            "ny": 103,
-            "obsrValue": "26"
+            "nx": 60,
+            "ny": 100,
+            "obsrValue": "27.9"
           },
           {
             "baseDate": "20260524",
             "baseTime": "1600",
             "category": "UUU",
-            "nx": 74,
-            "ny": 103,
-            "obsrValue": "-0.3"
+            "nx": 60,
+            "ny": 100,
+            "obsrValue": "-1.7"
           },
           {
             "baseDate": "20260524",
             "baseTime": "1600",
             "category": "VEC",
-            "nx": 74,
-            "ny": 103,
-            "obsrValue": "171"
+            "nx": 60,
+            "ny": 100,
+            "obsrValue": "54"
           },
           {
             "baseDate": "20260524",
             "baseTime": "1600",
             "category": "VVV",
-            "nx": 74,
-            "ny": 103,
-            "obsrValue": "2.4"
+            "nx": 60,
+            "ny": 100,
+            "obsrValue": "-1.2"
           },
           {
             "baseDate": "20260524",
             "baseTime": "1600",
             "category": "WSD",
-            "nx": 74,
-            "ny": 103,
-            "obsrValue": "2.4"
+            "nx": 60,
+            "ny": 100,
+            "obsrValue": "2.2"
           }
         ]
       },
