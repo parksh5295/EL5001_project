@@ -24,6 +24,13 @@ def env_factory(scenario_path: str, seed: int = 0):
     return lambda: UAVSolarEnv(scenario_path=scenario_path, seed=seed)
 
 
+def normalize_output_dir(output_dir_arg: str) -> Path:
+    out_dir = Path(output_dir_arg)
+    if out_dir.suffix.lower() == ".json":
+        out_dir = out_dir.with_suffix("")
+    return out_dir
+
+
 def get_vi_cache_path(output_dir: Path, scenario_path: str, args) -> Path:
     scenario_file = Path(scenario_path)
     scenario_sig = scenario_path
@@ -129,7 +136,7 @@ def main():
     args = parser.parse_args()
 
     scenario_path = args.scenario
-    out_dir = Path(args.output_dir)
+    out_dir = normalize_output_dir(args.output_dir)
     factory = env_factory(scenario_path)
     env = UAVSolarEnv(scenario_path)
     q_alpha = args.q_alpha if args.q_alpha is not None else args.alpha
