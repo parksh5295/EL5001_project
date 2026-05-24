@@ -145,38 +145,42 @@ def main():
 
     print("Training Q-learning...")
     Q = q_learning(
-        factory,
-        episodes=args.episodes,
-        alpha=q_alpha,
-        alpha_end=args.alpha_end,
-        gamma=args.gamma,
-        epsilon_start=args.epsilon_start,
-        epsilon_end=args.epsilon_end,
-        optimistic_init=args.optimistic_init,
-        seed=1,
-    )
-    q_policy = greedy_policy_from_q(Q, env.actions, seed=101)
+    factory,
+    episodes=args.episodes,
+    alpha=q_alpha,
+    alpha_end=args.alpha_end,
+    gamma=args.gamma,
+    epsilon_start=args.epsilon_start,
+    epsilon_end=args.epsilon_end,
+    optimistic_init=args.optimistic_init,
+    seed=1,
+)
+
+    q_policy = greedy_policy_from_q(Q,env, seed=101)
+
     q_metrics = evaluate_policy(
-        factory, q_policy, episodes=args.eval_episodes
-    )
+    factory, q_policy, episodes=args.eval_episodes
+)
     q_metrics["algorithm"] = "Q-learning"
 
     print("Training SARSA...")
     QS = sarsa(
-        factory,
-        episodes=args.episodes,
-        alpha=sarsa_alpha,
-        alpha_end=args.alpha_end,
-        gamma=args.gamma,
-        epsilon_start=args.epsilon_start,
-        epsilon_end=args.epsilon_end,
-        optimistic_init=args.optimistic_init,
-        seed=2,
-    )
-    sarsa_policy = greedy_policy_from_q(QS, env.actions, seed=202)
+    factory,
+    episodes=args.episodes,
+    alpha=sarsa_alpha,
+    alpha_end=args.alpha_end,
+    gamma=args.gamma,
+    epsilon_start=args.epsilon_start,
+    epsilon_end=args.epsilon_end,
+    optimistic_init=args.optimistic_init,
+    seed=2,
+)
+
+    sarsa_policy = greedy_policy_from_q(QS, env, seed=202)
+
     sarsa_metrics = evaluate_policy(
-        factory, sarsa_policy, episodes=args.eval_episodes
-    )
+    factory, sarsa_policy, episodes=args.eval_episodes
+)
     sarsa_metrics["algorithm"] = "SARSA"
 
     rows = [vi_metrics, q_metrics, sarsa_metrics]

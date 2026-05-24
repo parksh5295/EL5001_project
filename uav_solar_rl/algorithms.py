@@ -6,6 +6,42 @@ from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 
+def get_valid_actions(env, state):
+    valid = []
+
+    old_state = env.state
+
+    for action in env.actions:
+        env.state = state
+        result = env.step(action)
+
+        if not result.info.get("invalid_action", False):
+            valid.append(action)
+
+    env.state = old_state
+
+    if len(valid) == 0:
+        valid = ["hover"]
+
+    return valid
+
+
+def masked_epsilon_greedy(Q, env, state, epsilon, rng):
+    valid_actions = get_valid_actions(env, state)
+
+    if rng.random() < epsilon:
+        return rng.choice(valid_actions)
+
+    q_values = [Q.get((state, a), 0.0) for a in valid_actions]
+    max_q = max(q_values)
+
+    best_actions = [
+        a for a in valid_actions
+        if Q.get((state, a), 0.0) == max_q
+    ]
+
+    return rng.choice(best_actions)
+
 from .env import ACTIONS, State, UAVSolarEnv
 
 QTable = Dict[State, Dict[str, float]]
@@ -138,13 +174,13 @@ def q_learning(
 
         while not done:
 
-            a = epsilon_greedy(
-                Q,
-                s,
-                env.actions,
-                epsilon,
-                rng,
-            )
+            a = masked_epsilon_greedy(
+    Q,
+    env,
+    s,
+    epsilon,
+    rng,
+)
 
             result = env.step(a)
 
@@ -152,9 +188,13 @@ def q_learning(
             r = result.reward
             done = result.done
 
-            best_next = max(Q[ns].values())
+            next_valid_actions = get_valid_actions(env, ns)
 
-            target = r + (0.0 if done else gamma * best_next)
+            if done:
+                target = r
+            else:
+                best_next = max(Q[ns][na] for na in next_valid_actions)
+                target = r + gamma * best_next
 
             Q[s][a] += alpha_t * (target - Q[s][a])
 
@@ -195,13 +235,13 @@ def sarsa(
 
         s = env.reset()
 
-        a = epsilon_greedy(
-            Q,
-            s,
-            env.actions,
-            epsilon,
-            rng,
-        )
+        a = masked_epsilon_greedy(
+    Q,
+    env,
+    s,
+    epsilon,
+    rng,
+)
 
         done = False
 
@@ -213,13 +253,13 @@ def sarsa(
             r = result.reward
             done = result.done
 
-            na = epsilon_greedy(
-                Q,
-                ns,
-                env.actions,
-                epsilon,
-                rng,
-            )
+            na = masked_epsilon_greedy(
+    Q,
+    env,
+    ns,
+    epsilon,
+    rng,
+)
 
             target = r + (0.0 if done else gamma * Q[ns][na])
 
@@ -243,13 +283,20 @@ def q_to_policy(Q: QTable, actions: List[str]) -> Policy:
     return policy
 
 
-def greedy_policy_from_q(Q: QTable, actions: List[str], seed: int = 0) -> Callable[[State], str]:
-    """Create a greedy policy with random tie-breaking over equal Q-values."""
+def greedy_policy_from_q(Q: QTable, env, seed: int = 0):
     rng = random.Random(seed)
 
     def policy_fn(state: State) -> str:
-        # defaultdict-based Q returns initialized action values for unseen states.
-        return greedy_action(Q[state], rng)
+        valid_actions = get_valid_actions(env, state)
+
+        max_q = max(Q[state][a] for a in valid_actions)
+
+        best = [
+            a for a in valid_actions
+            if Q[state][a] == max_q
+        ]
+
+        return rng.choice(best)
 
     return policy_fn
 
