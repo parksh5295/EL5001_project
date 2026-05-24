@@ -1,0 +1,30 @@
+[
+  {
+    "t": 0,
+    "state": [
+      0,
+      0,
+      0,
+      16,
+      "Calm",
+      "Short",
+      "Short",
+      0
+    ],
+    "action": "move_E",
+    "reward": -82.0,
+    "next_state": [
+      1,
+      0,
+      0,
+      15,
+      "Calm",
+      "Short",
+      "Long",
+      0
+    ],
+    "info": {
+      "failure": "no_fly_violation"
+    }
+  }
+]
