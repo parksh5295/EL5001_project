@@ -451,6 +451,83 @@ def relax_and_validate_airspace(
     }
     return no_fly_relaxed, restricted_relaxed, meta
 
+def auto_place_charging_pads(
+    base: list[int],
+    targets: list[list[int]],
+    grid_size: list[int],
+    no_fly_cells: list[list[int]],
+    restricted_cells: list[list[int]],
+) -> list[list[int]]:
+
+    charging_pads = []
+
+    no_fly_set = {tuple(c) for c in no_fly_cells}
+    restricted_set = {tuple(c) for c in restricted_cells}
+
+    def is_valid(cell):
+        x, y, z = cell
+
+        return (
+            0 <= x < grid_size[0]
+            and 0 <= y < grid_size[1]
+            and z == 0
+            and tuple(cell) not in no_fly_set
+        )
+
+    def manhattan(a, b):
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    def add_if_valid(cell):
+
+        if not is_valid(cell):
+            return False
+
+        # 너무 가까운 charging station 중복 방지
+        if any(manhattan(cell, p) < 2 for p in charging_pads):
+            return False
+
+        charging_pads.append(cell)
+        return True
+
+    # 1. base는 항상 charging station
+    add_if_valid([base[0], base[1], 0])
+
+    # 2. target 근처 charging station 자동 배치
+    for target in targets:
+
+        x, y, _ = target
+
+        # target 바로 아래 ground 우선 시도
+        candidate = [x, y, 0]
+
+        if add_if_valid(candidate):
+            continue
+
+        # 실패 시 주변 safe cell 탐색
+        for radius in range(1, 4):
+
+            found = False
+
+            for dx in range(-radius, radius + 1):
+                for dy in range(-radius, radius + 1):
+
+                    if abs(dx) + abs(dy) != radius:
+                        continue
+
+                    nearby = [x + dx, y + dy, 0]
+
+                    if add_if_valid(nearby):
+                        found = True
+                        break
+
+                if found:
+                    break
+
+            if found:
+                break
+
+    return charging_pads
+
 
 def validate_scenario(
     scenario: dict[str, Any],
@@ -639,7 +716,13 @@ def build_scenario(args: argparse.Namespace) -> dict[str, Any]:
     center_lat = (bbox[1] + bbox[3]) / 2
 
     no_fly, restricted, vworld_meta = vworld_cells(args.use_vworld, bbox)
-    charging_pads = [[0, 3, 0], [3, 0, 0]]
+    charging_pads = auto_place_charging_pads(
+    base=[0, 0, 0],
+    targets=targets,
+    grid_size=GRID_SIZE,
+    no_fly_cells=no_fly,
+    restricted_cells=restricted,
+)
     no_fly, restricted, relax_meta = relax_and_validate_airspace(
         no_fly_cells=no_fly,
         restricted_cells=restricted,
@@ -670,7 +753,6 @@ def build_scenario(args: argparse.Namespace) -> dict[str, Any]:
         cell for cell in restricted
         if tuple(cell) not in protected_cells
     ]
-    charging_pads = [[0, 3, 0], [3, 0, 0],[2, 2, 0]]
 
     essential_cells = set(protected_cells)
 
@@ -741,7 +823,7 @@ def build_scenario(args: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build scenario.json from real solar CSV, VWorld API, and KMA API")
-    parser.add_argument("--solar-csv", required=True, help="Path to downloaded solar CSV file, e.g., data/solar.csv")
+    parser.add_argument("--solar-csv", required=True, help="Path to downloaded solar CSV file, e.g., data/solar_api.csv")
     parser.add_argument("--region-keyword", default=None, help="Optional Korean address keyword such as 나주, 광주, 전남")
     parser.add_argument("--use-vworld", action="store_true", help="Use VWorld API to create no-fly/restricted cells")
     parser.add_argument("--use-kma", action="store_true", help="Use KMA API to set initial wind")

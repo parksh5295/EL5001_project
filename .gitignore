@@ -4,6 +4,7 @@ __pycache__/
 results/*.png
 results/*.csv
 results/*.json
+data/solar_api.csv
 .DS_Store
 
 run.txt

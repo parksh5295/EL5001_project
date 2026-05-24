@@ -120,7 +120,7 @@ def main():
     parser.add_argument("--epsilon-start", type=float, default=1.0)
     parser.add_argument("--epsilon-end", type=float, default=0.05)
     parser.add_argument("--optimistic-init", type=float, default=0.0)
-    parser.add_argument("--gamma", type=float, default=0.95)
+    parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument(
         "--vi-state-mode",
         default="reachable",

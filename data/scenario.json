@@ -12,12 +12,12 @@
   "targets": [
     [
       1,
-      6,
+      0,
       1
     ],
     [
+      1,
       6,
-      2,
       1
     ]
   ],
@@ -36,13 +36,18 @@
       2,
       2,
       0
+    ],
+    [
+      6,
+      2,
+      0
     ]
   ],
   "no_fly_cells": [
     [
+      1,
       2,
-      6,
-      0
+      1
     ],
     [
       2,
@@ -50,55 +55,45 @@
       1
     ],
     [
-      2,
-      6,
-      2
-    ],
-    [
-      3,
-      6,
-      0
-    ],
-    [
       3,
       6,
       1
     ],
     [
-      3,
-      6,
-      2
-    ],
-    [
-      5,
-      7,
-      0
-    ],
-    [
       5,
       7,
       1
-    ],
-    [
-      5,
-      7,
-      2
     ]
   ],
   "restricted_cells": [
+    [
+      0,
+      2,
+      1
+    ],
     [
       1,
       3,
       1
     ],
     [
-      6,
-      6,
+      2,
+      0,
       1
     ],
     [
-      7,
-      2,
+      4,
+      0,
+      1
+    ],
+    [
+      5,
+      0,
+      1
+    ],
+    [
+      6,
+      6,
       1
     ],
     [
@@ -159,7 +154,17 @@
     "data_grounding": "solar_csv + VWorld_API + KMA_API_or_manual_wind",
     "solar_rows_used": [
       {
-        "name": "씨케이테크 태양광발전소",
+        "name": "solar_facility",
+        "lat": 34.43783275,
+        "lon": 126.5781948,
+        "grid_cell": [
+          1,
+          0,
+          1
+        ]
+      },
+      {
+        "name": "solar_facility",
         "lat": 37.7370749528,
         "lon": 126.8320456709,
         "grid_cell": [
@@ -167,26 +172,17 @@
           6,
           1
         ]
-      },
-      {
-        "name": "미래신합섬주식회사태양광발전소",
-        "lat": 35.91501883,
-        "lon": 128.8904968,
-        "grid_cell": [
-          6,
-          2,
-          1
-        ]
       }
     ],
     "solar_bbox": [
       125.50607267999999,
-      34.10617755547,
+      33.709712134469996,
       129.98751172000001,
-      38.860944754730006
+      38.91265763573001
     ],
-    "solar_source_rows_after_filter": 15221,
-    "region_keyword": null,
+    "solar_source_rows_after_filter": 34797,
+    "region_keyword": "광주",
+    "region_keyword_selected": "광주",
     "vworld_mode": "api_polygon_to_grid",
     "vworld_layers": {
       "no_fly": "LT_C_AISPRHC",
@@ -198,10 +194,14 @@
     ],
     "vworld_feature_counts": {
       "no_fly": 15,
-      "restricted": 71
+      "restricted": 74
     },
     "vworld_cells_2d": {
       "no_fly": [
+        [
+          1,
+          2
+        ],
         [
           2,
           6
@@ -213,12 +213,36 @@
         [
           5,
           7
+        ],
+        [
+          6,
+          2
         ]
       ],
       "restricted": [
         [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
           1,
           3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          5,
+          0
         ],
         [
           6,
@@ -226,35 +250,67 @@
         ],
         [
           7,
-          2
-        ],
-        [
-          7,
           6
         ]
       ]
     },
-    "nofly_coverage_ratio": 0.046875,
+    "nofly_coverage_ratio": 0.078125,
     "broad_nofly_cells_2d": [],
+    "vworld_relaxation": {
+      "protected_cells_removed_from_nofly_2d": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          6,
+          2
+        ]
+      ],
+      "nofly_2d_coverage_before_relax": 0.0625,
+      "downgraded_nofly_to_restricted_due_to_coverage": false,
+      "nofly_altitude_mode_after_relax": "middle",
+      "targets_reachable_from_base_after_relax": true
+    },
     "weather_mode": "kma_api",
     "kma_obs": {
       "PTY": "0",
-      "REH": "47",
+      "REH": "98",
       "RN1": "0",
-      "T1H": "26",
-      "UUU": "-0.3",
-      "VEC": "171",
-      "VVV": "2.4",
-      "WSD": "2.4"
+      "T1H": "13.6",
+      "UUU": "-0.6",
+      "VEC": "131",
+      "VVV": "0.6",
+      "WSD": "0.9"
     },
     "kma_grid": [
       74,
-      103
+      100
     ],
-    "base_date": "20260524",
-    "base_time": "1600",
+    "base_date": "20260525",
+    "base_time": "0200",
     "mission_center": [
-      36.483561155100006,
+      36.311184885100005,
       127.7467922
     ],
     "kma_endpoint": "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst"
