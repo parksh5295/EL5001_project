@@ -1,0 +1,466 @@
+[
+  {
+    "t": 0,
+    "state": [
+      0,
+      0,
+      0,
+      18,
+      "Calm",
+      "Short",
+      "Short",
+      0
+    ],
+    "action": "move_E",
+    "reward": -2.0,
+    "next_state": [
+      1,
+      0,
+      0,
+      17,
+      "Calm",
+      "Short",
+      "Long",
+      0
+    ],
+    "info": {}
+  },
+  {
+    "t": 1,
+    "state": [
+      1,
+      0,
+      0,
+      17,
+      "Calm",
+      "Short",
+      "Long",
+      0
+    ],
+    "action": "ascend",
+    "reward": -3.0,
+    "next_state": [
+      1,
+      0,
+      1,
+      15,
+      "Calm",
+      "Long",
+      "Long",
+      0
+    ],
+    "info": {}
+  },
+  {
+    "t": 2,
+    "state": [
+      1,
+      0,
+      1,
+      15,
+      "Calm",
+      "Long",
+      "Long",
+      0
+    ],
+    "action": "inspect",
+    "reward": 39.0,
+    "next_state": [
+      1,
+      0,
+      1,
+      15,
+      "Calm",
+      "Long",
+      "Long",
+      1
+    ],
+    "info": {
+      "new_target": 0
+    }
+  },
+  {
+    "t": 3,
+    "state": [
+      1,
+      0,
+      1,
+      15,
+      "Calm",
+      "Long",
+      "Long",
+      1
+    ],
+    "action": "descend",
+    "reward": -2.0,
+    "next_state": [
+      1,
+      0,
+      0,
+      14,
+      "Calm",
+      "Long",
+      "Short",
+      1
+    ],
+    "info": {}
+  },
+  {
+    "t": 4,
+    "state": [
+      1,
+      0,
+      0,
+      14,
+      "Calm",
+      "Long",
+      "Short",
+      1
+    ],
+    "action": "hover",
+    "reward": -2.0,
+    "next_state": [
+      1,
+      0,
+      0,
+      13,
+      "EastWind",
+      "Long",
+      "Short",
+      1
+    ],
+    "info": {}
+  },
+  {
+    "t": 5,
+    "state": [
+      1,
+      0,
+      0,
+      13,
+      "EastWind",
+      "Long",
+      "Short",
+      1
+    ],
+    "action": "move_N",
+    "reward": -2.0,
+    "next_state": [
+      2,
+      1,
+      0,
+      12,
+      "Calm",
+      "Long",
+      "Short",
+      1
+    ],
+    "info": {
+      "wind_drift": true
+    }
+  },
+  {
+    "t": 6,
+    "state": [
+      2,
+      1,
+      0,
+      12,
+      "Calm",
+      "Long",
+      "Short",
+      1
+    ],
+    "action": "move_W",
+    "reward": -2.0,
+    "next_state": [
+      1,
+      1,
+      0,
+      11,
+      "Calm",
+      "Long",
+      "Short",
+      1
+    ],
+    "info": {}
+  },
+  {
+    "t": 7,
+    "state": [
+      1,
+      1,
+      0,
+      11,
+      "Calm",
+      "Long",
+      "Short",
+      1
+    ],
+    "action": "ascend",
+    "reward": -3.0,
+    "next_state": [
+      1,
+      1,
+      1,
+      9,
+      "NorthWind",
+      "Long",
+      "Long",
+      1
+    ],
+    "info": {}
+  },
+  {
+    "t": 8,
+    "state": [
+      1,
+      1,
+      1,
+      9,
+      "NorthWind",
+      "Long",
+      "Long",
+      1
+    ],
+    "action": "descend",
+    "reward": -2.0,
+    "next_state": [
+      1,
+      2,
+      0,
+      8,
+      "NorthWind",
+      "Short",
+      "Short",
+      1
+    ],
+    "info": {
+      "wind_drift": true
+    }
+  },
+  {
+    "t": 9,
+    "state": [
+      1,
+      2,
+      0,
+      8,
+      "NorthWind",
+      "Short",
+      "Short",
+      1
+    ],
+    "action": "move_W",
+    "reward": -2.0,
+    "next_state": [
+      0,
+      3,
+      0,
+      7,
+      "NorthWind",
+      "Short",
+      "Short",
+      1
+    ],
+    "info": {
+      "wind_drift": true
+    }
+  },
+  {
+    "t": 10,
+    "state": [
+      0,
+      3,
+      0,
+      7,
+      "NorthWind",
+      "Short",
+      "Short",
+      1
+    ],
+    "action": "ascend",
+    "reward": -3.0,
+    "next_state": [
+      0,
+      4,
+      1,
+      5,
+      "NorthWind",
+      "Short",
+      "Long",
+      1
+    ],
+    "info": {
+      "wind_drift": true
+    }
+  },
+  {
+    "t": 11,
+    "state": [
+      0,
+      4,
+      1,
+      5,
+      "NorthWind",
+      "Short",
+      "Long",
+      1
+    ],
+    "action": "descend",
+    "reward": -2.0,
+    "next_state": [
+      0,
+      5,
+      0,
+      4,
+      "NorthWind",
+      "Short",
+      "Short",
+      1
+    ],
+    "info": {
+      "wind_drift": true
+    }
+  },
+  {
+    "t": 12,
+    "state": [
+      0,
+      5,
+      0,
+      4,
+      "NorthWind",
+      "Short",
+      "Short",
+      1
+    ],
+    "action": "move_E",
+    "reward": -2.0,
+    "next_state": [
+      1,
+      6,
+      0,
+      3,
+      "EastWind",
+      "Short",
+      "Short",
+      1
+    ],
+    "info": {
+      "wind_drift": true
+    }
+  },
+  {
+    "t": 13,
+    "state": [
+      1,
+      6,
+      0,
+      3,
+      "EastWind",
+      "Short",
+      "Short",
+      1
+    ],
+    "action": "move_S",
+    "reward": -2.0,
+    "next_state": [
+      2,
+      5,
+      0,
+      2,
+      "EastWind",
+      "Long",
+      "Short",
+      1
+    ],
+    "info": {
+      "wind_drift": true
+    }
+  },
+  {
+    "t": 14,
+    "state": [
+      2,
+      5,
+      0,
+      2,
+      "EastWind",
+      "Long",
+      "Short",
+      1
+    ],
+    "action": "move_W",
+    "reward": -2.0,
+    "next_state": [
+      2,
+      5,
+      0,
+      1,
+      "EastWind",
+      "Short",
+      "Short",
+      1
+    ],
+    "info": {
+      "wind_drift": true
+    }
+  },
+  {
+    "t": 15,
+    "state": [
+      2,
+      5,
+      0,
+      1,
+      "EastWind",
+      "Short",
+      "Short",
+      1
+    ],
+    "action": "move_N",
+    "reward": -2.0,
+    "next_state": [
+      3,
+      6,
+      0,
+      0,
+      "Calm",
+      "Long",
+      "Short",
+      1
+    ],
+    "info": {
+      "wind_drift": true
+    }
+  },
+  {
+    "t": 16,
+    "state": [
+      3,
+      6,
+      0,
+      0,
+      "Calm",
+      "Long",
+      "Short",
+      1
+    ],
+    "action": "move_W",
+    "reward": -122.0,
+    "next_state": [
+      2,
+      6,
+      0,
+      0,
+      "Calm",
+      "Long",
+      "Short",
+      1
+    ],
+    "info": {
+      "failure": "battery_depletion"
+    }
+  }
+]

@@ -16,6 +16,11 @@ def get_valid_actions(env, state):
         ok = True
 
         if action in ["move_N", "move_S", "move_E", "move_W", "ascend", "descend"]:
+            # movement consumes battery (ascend consumes one extra)
+            required_battery = 2 if action == "ascend" else 1
+            if battery < required_battery:
+                continue
+
             moved = env.move_position(pos, action)
             if not env.in_bounds(moved):
                 ok = False
@@ -63,12 +68,12 @@ def masked_epsilon_greedy(Q, env, state, epsilon, rng):
     if rng.random() < epsilon:
         return rng.choice(valid_actions)
 
-    q_values = [Q.get((state, a), 0.0) for a in valid_actions]
+    q_values = [Q[state][a] for a in valid_actions]
     max_q = max(q_values)
 
     best_actions = [
         a for a in valid_actions
-        if Q.get((state, a), 0.0) == max_q
+        if Q[state][a] == max_q
     ]
 
     return rng.choice(best_actions)
@@ -193,11 +198,10 @@ def q_learning(
 
     Q = make_q(env.actions, initial_value=optimistic_init)
 
-    epsilon = epsilon_start
-
     for ep in range(episodes):
         frac = ep / max(1, episodes - 1)
         alpha_t = max(alpha_end, alpha * (1.0 - frac))
+        epsilon = max(epsilon_end, epsilon_start * (1.0 - frac))
 
         s = env.reset()
 
@@ -231,11 +235,6 @@ def q_learning(
 
             s = ns
 
-        epsilon = max(
-            epsilon_end,
-            epsilon * epsilon_decay,
-        )
-
     return Q
 
 
@@ -258,11 +257,10 @@ def sarsa(
 
     Q = make_q(env.actions, initial_value=optimistic_init)
 
-    epsilon = epsilon_start
-
     for ep in range(episodes):
         frac = ep / max(1, episodes - 1)
         alpha_t = max(alpha_end, alpha * (1.0 - frac))
+        epsilon = max(epsilon_end, epsilon_start * (1.0 - frac))
 
         s = env.reset()
 
@@ -298,11 +296,6 @@ def sarsa(
 
             s = ns
             a = na
-
-        epsilon = max(
-            epsilon_end,
-            epsilon * epsilon_decay,
-        )
 
     return Q
 
