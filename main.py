@@ -92,6 +92,18 @@ def main():
     parser.add_argument("--epsilon-start", type=float, default=1.0)
     parser.add_argument("--epsilon-end", type=float, default=0.05)
     parser.add_argument("--optimistic-init", type=float, default=0.0)
+    parser.add_argument(
+        "--vi-state-mode",
+        default="reachable",
+        choices=["reachable", "enumerate"],
+        help="State set mode for Value Iteration",
+    )
+    parser.add_argument(
+        "--vi-state-limit",
+        type=int,
+        default=50000,
+        help="Reachable-state BFS cap used when --vi-state-mode reachable",
+    )
     args = parser.parse_args()
 
     scenario_path = args.scenario
@@ -107,7 +119,14 @@ def main():
     print(f"Actions: {env.actions}\n")
 
     print("Running Value Iteration...")
-    vi_policy, V = value_iteration(env, gamma=0.95, theta=1e-5, max_iter=500)
+    vi_policy, V = value_iteration(
+        env,
+        gamma=0.95,
+        theta=1e-5,
+        max_iter=500,
+        state_mode=args.vi_state_mode,
+        reachable_limit=args.vi_state_limit,
+    )
     vi_metrics = evaluate_policy(
         factory, lambda s: vi_policy.get(s, "hover"), episodes=args.eval_episodes
     )

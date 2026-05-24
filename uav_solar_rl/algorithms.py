@@ -50,9 +50,20 @@ def reachable_states(env: UAVSolarEnv, limit: int = 20000) -> List[State]:
 
 
 def value_iteration(
-    env: UAVSolarEnv, gamma: float = 0.95, theta: float = 1e-5, max_iter: int = 500
+    env: UAVSolarEnv,
+    gamma: float = 0.95,
+    theta: float = 1e-5,
+    max_iter: int = 500,
+    state_mode: str = "reachable",
+    reachable_limit: int = 50000,
 ) -> Tuple[Policy, Dict[State, float]]:
-    states = reachable_states(env)
+    if state_mode == "enumerate":
+        states = env.enumerate_states()
+    elif state_mode == "reachable":
+        states = reachable_states(env, limit=reachable_limit)
+    else:
+        raise ValueError(f"Unknown state_mode: {state_mode}")
+
     V: Dict[State, float] = {s: 0.0 for s in states}
     transition_cache: Dict[
         Tuple[State, str], List[Tuple[float, State, float, bool]]
