@@ -55,7 +55,7 @@ def value_iteration(
     theta: float = 1e-5,
     max_iter: int = 500,
     state_mode: str = "reachable",
-    reachable_limit: int = 50000,
+    reachable_limit: int = 200000,
 ) -> Tuple[Policy, Dict[State, float]]:
     if state_mode == "enumerate":
         states = env.enumerate_states()

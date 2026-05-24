@@ -10,7 +10,7 @@
         "item": [
           {
             "baseDate": "20260525",
-            "baseTime": "0200",
+            "baseTime": "0300",
             "category": "PTY",
             "nx": 74,
             "ny": 100,
@@ -18,7 +18,7 @@
           },
           {
             "baseDate": "20260525",
-            "baseTime": "0200",
+            "baseTime": "0300",
             "category": "REH",
             "nx": 74,
             "ny": 100,
@@ -26,7 +26,7 @@
           },
           {
             "baseDate": "20260525",
-            "baseTime": "0200",
+            "baseTime": "0300",
             "category": "RN1",
             "nx": 74,
             "ny": 100,
@@ -34,43 +34,43 @@
           },
           {
             "baseDate": "20260525",
-            "baseTime": "0200",
+            "baseTime": "0300",
             "category": "T1H",
             "nx": 74,
             "ny": 100,
-            "obsrValue": "13.6"
+            "obsrValue": "13.1"
           },
           {
             "baseDate": "20260525",
-            "baseTime": "0200",
+            "baseTime": "0300",
             "category": "UUU",
             "nx": 74,
             "ny": 100,
-            "obsrValue": "-0.6"
+            "obsrValue": "-1"
           },
           {
             "baseDate": "20260525",
-            "baseTime": "0200",
+            "baseTime": "0300",
             "category": "VEC",
             "nx": 74,
             "ny": 100,
-            "obsrValue": "131"
+            "obsrValue": "126"
           },
           {
             "baseDate": "20260525",
-            "baseTime": "0200",
+            "baseTime": "0300",
             "category": "VVV",
             "nx": 74,
             "ny": 100,
-            "obsrValue": "0.6"
+            "obsrValue": "0.8"
           },
           {
             "baseDate": "20260525",
-            "baseTime": "0200",
+            "baseTime": "0300",
             "category": "WSD",
             "nx": 74,
             "ny": 100,
-            "obsrValue": "0.9"
+            "obsrValue": "1.3"
           }
         ]
       },

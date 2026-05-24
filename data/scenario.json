@@ -24,22 +24,17 @@
   "charging_pads": [
     [
       0,
-      3,
-      0
-    ],
-    [
-      3,
       0,
       0
     ],
     [
-      2,
-      2,
+      1,
+      1,
       0
     ],
     [
+      1,
       6,
-      2,
       0
     ]
   ],
@@ -62,6 +57,11 @@
     [
       5,
       7,
+      1
+    ],
+    [
+      6,
+      2,
       1
     ]
   ],
@@ -138,17 +138,17 @@
   "max_battery": 18,
   "max_steps": 150,
   "reward": {
-    "inspect_new_target": 25,
-    "finish_all_and_return_base": 150,
+    "inspect_new_target": 40,
+    "finish_all_and_return_base": 200,
     "step_cost": -1,
     "move_battery_cost": -1,
     "ascend_extra_battery_cost": -1,
-    "charge_short_queue_cost": -3,
-    "charge_long_queue_cost": -12,
+    "charge_short_queue_cost": -1,
+    "charge_long_queue_cost": -5,
     "restricted_area_cost": -10,
     "no_fly_violation": -80,
-    "battery_depletion": -80,
-    "invalid_action_cost": -10
+    "battery_depletion": -120,
+    "invalid_action_cost": -20
   },
   "metadata": {
     "data_grounding": "solar_csv + VWorld_API + KMA_API_or_manual_wind",
@@ -263,31 +263,19 @@
           0
         ],
         [
-          0,
-          3
+          1,
+          0
         ],
         [
           1,
-          0
+          1
         ],
         [
           1,
           6
-        ],
-        [
-          2,
-          2
-        ],
-        [
-          3,
-          0
-        ],
-        [
-          6,
-          2
         ]
       ],
-      "nofly_2d_coverage_before_relax": 0.0625,
+      "nofly_2d_coverage_before_relax": 0.078125,
       "downgraded_nofly_to_restricted_due_to_coverage": false,
       "nofly_altitude_mode_after_relax": "middle",
       "targets_reachable_from_base_after_relax": true
@@ -297,18 +285,18 @@
       "PTY": "0",
       "REH": "98",
       "RN1": "0",
-      "T1H": "13.6",
-      "UUU": "-0.6",
-      "VEC": "131",
-      "VVV": "0.6",
-      "WSD": "0.9"
+      "T1H": "13.1",
+      "UUU": "-1",
+      "VEC": "126",
+      "VVV": "0.8",
+      "WSD": "1.3"
     },
     "kma_grid": [
       74,
       100
     ],
     "base_date": "20260525",
-    "base_time": "0200",
+    "base_time": "0300",
     "mission_center": [
       36.311184885100005,
       127.7467922

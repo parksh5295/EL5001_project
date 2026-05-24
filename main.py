@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
+
 import json
-import pickle
+
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -29,25 +29,6 @@ def normalize_output_dir(output_dir_arg: str) -> Path:
     if out_dir.suffix.lower() == ".json":
         out_dir = out_dir.with_suffix("")
     return out_dir
-
-
-def get_vi_cache_path(output_dir: Path, scenario_path: str, args) -> Path:
-    scenario_file = Path(scenario_path)
-    scenario_sig = scenario_path
-    if scenario_file.exists():
-        scenario_sig = f"{scenario_file.resolve()}|{scenario_file.stat().st_mtime_ns}"
-    cache_key = "|".join(
-        [
-            scenario_sig,
-            f"gamma={args.gamma}",
-            f"vi_state_mode={args.vi_state_mode}",
-            f"vi_state_limit={args.vi_state_limit}",
-            "vi_theta=1e-5",
-            "vi_max_iter=500",
-        ]
-    )
-    digest = hashlib.sha256(cache_key.encode("utf-8")).hexdigest()[:12]
-    return output_dir / f"vi_policy_{digest}.pkl"
 
 
 def save_metrics(rows, out_path: Path):
@@ -110,7 +91,7 @@ def main():
         description="3D UAV solar inspection MDP with Value Iteration, Q-learning, and SARSA"
     )
     parser.add_argument("--scenario", default="data/scenario.json")
-    parser.add_argument("--episodes", type=int, default=50000)
+    parser.add_argument("--episodes", type=int, default=100000)
     parser.add_argument("--eval-episodes", type=int, default=300)
     parser.add_argument("--output-dir", default="results")
     parser.add_argument("--alpha", type=float, default=0.10)
@@ -118,19 +99,19 @@ def main():
     parser.add_argument("--sarsa-alpha", type=float, default=0.08)
     parser.add_argument("--alpha-end", type=float, default=0.03)
     parser.add_argument("--epsilon-start", type=float, default=1.0)
-    parser.add_argument("--epsilon-end", type=float, default=0.05)
+    parser.add_argument("--epsilon-end", type=float, default=0.02)
     parser.add_argument("--optimistic-init", type=float, default=0.0)
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument(
         "--vi-state-mode",
-        default="reachable",
+        default="enumerate",
         choices=["reachable", "enumerate"],
         help="State set mode for Value Iteration",
     )
     parser.add_argument(
         "--vi-state-limit",
         type=int,
-        default=50000,
+        default=200000,
         help="Reachable-state BFS cap used when --vi-state-mode reachable",
     )
     args = parser.parse_args()
@@ -148,24 +129,15 @@ def main():
     print(f"Actions: {env.actions}\n")
 
     print("Running Value Iteration...")
-    vi_cache = get_vi_cache_path(out_dir, scenario_path, args)
 
-    if vi_cache.exists():
-        print("Loading cached Value Iteration policy...")
-        with vi_cache.open("rb") as f:
-            vi_policy = pickle.load(f)
-    else:
-        vi_policy, V = value_iteration(
-            env,
-            gamma=args.gamma,
-            theta=1e-5,
-            max_iter=500,
-            state_mode=args.vi_state_mode,
-            reachable_limit=args.vi_state_limit,
-        )
-        out_dir.mkdir(parents=True, exist_ok=True)
-        with vi_cache.open("wb") as f:
-            pickle.dump(vi_policy, f)
+    vi_policy, V = value_iteration(
+    env,
+    gamma=args.gamma,
+    theta=1e-5,
+    max_iter=500,
+    state_mode=args.vi_state_mode,
+    reachable_limit=args.vi_state_limit,
+)
     vi_metrics = evaluate_policy(
         factory, lambda s: vi_policy.get(s, "hover"), episodes=args.eval_episodes
     )
