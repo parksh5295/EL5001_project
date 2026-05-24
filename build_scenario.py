@@ -31,11 +31,11 @@ from shapely.geometry import Point, Polygon, MultiPolygon, shape
 from shapely.ops import unary_union
 
 
-GRID_SIZE = [4, 4, 3]
+GRID_SIZE = [8, 8, 3]
 DEFAULT_WIND_TRANSITION = {
-    "Calm": {"Calm": 0.70, "EastWind": 0.15, "NorthWind": 0.15},
-    "EastWind": {"EastWind": 0.60, "Calm": 0.30, "NorthWind": 0.10},
-    "NorthWind": {"NorthWind": 0.60, "Calm": 0.30, "EastWind": 0.10},
+    "Calm": {"Calm": 0.85, "EastWind": 0.10, "NorthWind": 0.05},
+    "EastWind": {"EastWind": 0.70, "Calm": 0.20, "NorthWind": 0.10},
+    "NorthWind": {"NorthWind": 0.70, "Calm": 0.20, "EastWind": 0.10},
 }
 DEFAULT_QUEUE_TRANSITION = {
     "Short": {"Short": 0.70, "Long": 0.30},
@@ -100,7 +100,7 @@ def solar_targets_from_dataframe(
         work[cap_col] = pd.to_numeric(work[cap_col], errors="coerce")
         work = work.sort_values(cap_col, ascending=False)
 
-    work = work.drop_duplicates(subset=[lat_col, lon_col]).head(max(30, max_targets * 10))
+    work = work.drop_duplicates(subset=[lat_col, lon_col])
     if len(work) == 0:
         raise ValueError("No usable solar rows after filtering.")
 
@@ -121,12 +121,16 @@ def solar_targets_from_dataframe(
     seen = set()
 
     for _, row in work.iterrows():
-        ix = int((float(row[lon_col]) - min_lon) / lon_span * (nx - 1))
-        iy = int((float(row[lat_col]) - min_lat) / lat_span * (ny - 1))
+        ix = int((float(row[lon_col]) - min_lon) / lon_span * nx)
+        iy = int((float(row[lat_col]) - min_lat) / lat_span * ny)
         ix = max(0, min(nx - 1, ix))
         iy = max(0, min(ny - 1, iy))
         cell = (ix, iy, 1)
-        if cell in seen or cell == (0, 0, 0):
+        if cell in seen:
+            continue
+
+    # avoid targets too close to base
+        if abs(ix - 0) + abs(iy - 0) + abs(1 - 0) <= 1:
             continue
         targets.append([ix, iy, 1])
         seen.add(cell)
@@ -328,6 +332,17 @@ def vworld_cells(use_vworld: bool, bbox: list[float]) -> tuple[list[list[int]], 
         nofly_2d = cells_from_vworld_geometries(nofly_geoms, bbox)
         restricted_2d = cells_from_vworld_geometries(restricted_geoms, bbox)
 
+        nx, ny, _ = GRID_SIZE
+        nofly_ratio = len(set(nofly_2d)) / (nx * ny)
+
+# If VWorld no-fly covers almost the entire small mission area,
+# treating it as terminal no-fly makes the MDP infeasible.
+        if nofly_ratio > 0.40:
+            broad_nofly_2d = nofly_2d
+            nofly_2d = []
+        else:
+            broad_nofly_2d = []
+
         no_fly_cells = expand_to_3d(nofly_2d, altitude_mode="all")
         restricted_cells = expand_to_3d(restricted_2d, altitude_mode="middle")
 
@@ -346,6 +361,8 @@ def vworld_cells(use_vworld: bool, bbox: list[float]) -> tuple[list[list[int]], 
                 "no_fly": [list(c) for c in sorted(nofly_2d)],
                 "restricted": [list(c) for c in sorted(restricted_2d)],
             },
+            "nofly_coverage_ratio": nofly_ratio,
+            "broad_nofly_cells_2d": [list(c) for c in sorted(broad_nofly_2d)],
         }
     except Exception as e:
         meta = {"vworld_mode": "api_failed", "vworld_error": str(e)}
@@ -633,6 +650,48 @@ def build_scenario(args: argparse.Namespace) -> dict[str, Any]:
         nofly_coverage_limit=args.max_nofly_coverage,
     )
 
+    # Protect start/base area so the episode does not fail immediately.
+    protected_cells = {
+    (0, 0, 0),
+    (1, 0, 0),
+    (0, 1, 0),
+    (0, 0, 1),
+    (1,1,0),
+    (1,0,1),
+    (0,1,1),
+}
+
+    no_fly = [
+        cell for cell in no_fly
+        if tuple(cell) not in protected_cells
+    ]
+
+    restricted = [
+        cell for cell in restricted
+        if tuple(cell) not in protected_cells
+    ]
+    charging_pads = [[0, 3, 0], [3, 0, 0],[2, 2, 0]]
+
+    essential_cells = set(protected_cells)
+
+    for x, y, z in targets:
+        essential_cells.add((x, y, z))
+        essential_cells.add((x, y, 0))
+        essential_cells.add((x, y, 1))
+
+    for x, y, z in charging_pads:
+        essential_cells.add((x, y, z))
+
+    no_fly = [
+    cell for cell in no_fly
+    if tuple(cell) not in essential_cells
+]
+
+    restricted = [
+    cell for cell in restricted
+    if tuple(cell) not in essential_cells
+]
+
     wind = args.wind
     weather_meta: dict[str, Any] = {"weather_mode": "manual", "manual_wind": wind}
     if args.use_kma:
@@ -649,11 +708,11 @@ def build_scenario(args: argparse.Namespace) -> dict[str, Any]:
         "wind_states": ["Calm", "EastWind", "NorthWind"],
         "wind_transition": DEFAULT_WIND_TRANSITION,
         "queue_transition": DEFAULT_QUEUE_TRANSITION,
-        "max_battery": 16,
-        "max_steps": 120,
+        "max_battery": 18,
+        "max_steps": 150,
         "reward": {
             "inspect_new_target": 25,
-            "finish_all_and_return_base": 100,
+            "finish_all_and_return_base": 150,
             "step_cost": -1,
             "move_battery_cost": -1,
             "ascend_extra_battery_cost": -1,
@@ -662,7 +721,7 @@ def build_scenario(args: argparse.Namespace) -> dict[str, Any]:
             "restricted_area_cost": -10,
             "no_fly_violation": -80,
             "battery_depletion": -80,
-            "invalid_action_cost": -4,
+            "invalid_action_cost": -10,
         },
         "metadata": {
             "data_grounding": "solar_csv + VWorld_API + KMA_API_or_manual_wind",
