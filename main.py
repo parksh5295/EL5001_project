@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import pickle
 from pathlib import Path
@@ -21,6 +22,25 @@ from uav_solar_rl.env import UAVSolarEnv
 
 def env_factory(scenario_path: str, seed: int = 0):
     return lambda: UAVSolarEnv(scenario_path=scenario_path, seed=seed)
+
+
+def get_vi_cache_path(output_dir: Path, scenario_path: str, args) -> Path:
+    scenario_file = Path(scenario_path)
+    scenario_sig = scenario_path
+    if scenario_file.exists():
+        scenario_sig = f"{scenario_file.resolve()}|{scenario_file.stat().st_mtime_ns}"
+    cache_key = "|".join(
+        [
+            scenario_sig,
+            f"gamma={args.gamma}",
+            f"vi_state_mode={args.vi_state_mode}",
+            f"vi_state_limit={args.vi_state_limit}",
+            "vi_theta=1e-5",
+            "vi_max_iter=500",
+        ]
+    )
+    digest = hashlib.sha256(cache_key.encode("utf-8")).hexdigest()[:12]
+    return output_dir / f"vi_policy_{digest}.pkl"
 
 
 def save_metrics(rows, out_path: Path):
@@ -93,6 +113,7 @@ def main():
     parser.add_argument("--epsilon-start", type=float, default=1.0)
     parser.add_argument("--epsilon-end", type=float, default=0.05)
     parser.add_argument("--optimistic-init", type=float, default=0.0)
+    parser.add_argument("--gamma", type=float, default=0.95)
     parser.add_argument(
         "--vi-state-mode",
         default="reachable",
@@ -120,7 +141,7 @@ def main():
     print(f"Actions: {env.actions}\n")
 
     print("Running Value Iteration...")
-    vi_cache = out_dir / "vi_policy.pkl"
+    vi_cache = get_vi_cache_path(out_dir, scenario_path, args)
 
     if vi_cache.exists():
         print("Loading cached Value Iteration policy...")
@@ -129,7 +150,7 @@ def main():
     else:
         vi_policy, V = value_iteration(
             env,
-            gamma=0.95,
+            gamma=args.gamma,
             theta=1e-5,
             max_iter=500,
             state_mode=args.vi_state_mode,
@@ -149,7 +170,7 @@ def main():
         episodes=args.episodes,
         alpha=q_alpha,
         alpha_end=args.alpha_end,
-        gamma=0.99,
+        gamma=args.gamma,
         epsilon_start=args.epsilon_start,
         epsilon_end=args.epsilon_end,
         optimistic_init=args.optimistic_init,
@@ -167,7 +188,7 @@ def main():
         episodes=args.episodes,
         alpha=sarsa_alpha,
         alpha_end=args.alpha_end,
-        gamma=0.99,
+        gamma=args.gamma,
         epsilon_start=args.epsilon_start,
         epsilon_end=args.epsilon_end,
         optimistic_init=args.optimistic_init,
