@@ -630,7 +630,7 @@ def build_scenario(args: argparse.Namespace) -> dict[str, Any]:
         solar_df,
         max_targets=args.targets,
         region_keyword=args.region_keyword,
-        fallback_keywords=args.region_fallback_keywords,
+        fallback_keywords=args.region_fallback_keywords if args.enable_region_fallback else None,
         min_solar_rows=args.min_solar_rows,
     )
 
@@ -747,7 +747,8 @@ def main() -> None:
     parser.add_argument("--use-kma", action="store_true", help="Use KMA API to set initial wind")
     parser.add_argument("--wind", default="Calm", choices=["Calm", "EastWind", "NorthWind"], help="Manual wind if --use-kma is not used")
     parser.add_argument("--targets", type=int, default=2)
-    parser.add_argument("--region-fallback-keywords", default="전남,광주", help="Comma-separated fallback region keywords")
+    parser.add_argument("--enable-region-fallback", action="store_true", help="Enable fallback region keywords when primary keyword has insufficient rows")
+    parser.add_argument("--region-fallback-keywords", default="", help="Comma-separated fallback region keywords (used only with --enable-region-fallback)")
     parser.add_argument("--min-solar-rows", type=int, default=3, help="Minimum filtered solar rows required by validation")
     parser.add_argument("--max-nofly-coverage", type=float, default=0.7, help="Maximum allowed 2D no-fly coverage ratio")
     parser.add_argument("--output", default="data/scenario.json")
