@@ -1,0 +1,287 @@
+{
+  "grid_size": [
+    8,
+    8,
+    3
+  ],
+  "base": [
+    0,
+    0,
+    0
+  ],
+  "targets": [
+    [
+      6,
+      7,
+      1
+    ],
+    [
+      7,
+      7,
+      1
+    ]
+  ],
+  "charging_pads": [
+    [
+      0,
+      3,
+      0
+    ],
+    [
+      3,
+      0,
+      0
+    ],
+    [
+      2,
+      2,
+      0
+    ]
+  ],
+  "no_fly_cells": [
+    [
+      1,
+      1,
+      1
+    ],
+    [
+      5,
+      4,
+      1
+    ],
+    [
+      6,
+      4,
+      1
+    ],
+    [
+      7,
+      4,
+      1
+    ]
+  ],
+  "restricted_cells": [
+    [
+      0,
+      3,
+      1
+    ],
+    [
+      1,
+      3,
+      1
+    ],
+    [
+      2,
+      0,
+      1
+    ],
+    [
+      3,
+      7,
+      1
+    ],
+    [
+      4,
+      7,
+      1
+    ]
+  ],
+  "initial_wind": "Calm",
+  "wind_states": [
+    "Calm",
+    "EastWind",
+    "NorthWind"
+  ],
+  "wind_transition": {
+    "Calm": {
+      "Calm": 0.85,
+      "EastWind": 0.1,
+      "NorthWind": 0.05
+    },
+    "EastWind": {
+      "EastWind": 0.7,
+      "Calm": 0.2,
+      "NorthWind": 0.1
+    },
+    "NorthWind": {
+      "NorthWind": 0.7,
+      "Calm": 0.2,
+      "EastWind": 0.1
+    }
+  },
+  "queue_transition": {
+    "Short": {
+      "Short": 0.7,
+      "Long": 0.3
+    },
+    "Long": {
+      "Long": 0.6,
+      "Short": 0.4
+    }
+  },
+  "max_battery": 18,
+  "max_steps": 150,
+  "reward": {
+    "inspect_new_target": 25,
+    "finish_all_and_return_base": 150,
+    "step_cost": -1,
+    "move_battery_cost": -1,
+    "ascend_extra_battery_cost": -1,
+    "charge_short_queue_cost": -3,
+    "charge_long_queue_cost": -12,
+    "restricted_area_cost": -10,
+    "no_fly_violation": -80,
+    "battery_depletion": -80,
+    "invalid_action_cost": -10
+  },
+  "metadata": {
+    "data_grounding": "solar_csv + VWorld_API + KMA_API_or_manual_wind",
+    "solar_rows_used": [
+      {
+        "name": "경기 광주 곤지암 태양광발전소",
+        "lat": 37.40010094,
+        "lon": 127.293121,
+        "grid_cell": [
+          6,
+          7,
+          1
+        ]
+      },
+      {
+        "name": "㈜에스에이치에너지 발전소",
+        "lat": 37.38043681,
+        "lon": 127.4422317,
+        "grid_cell": [
+          7,
+          7,
+          1
+        ]
+      }
+    ],
+    "solar_bbox": [
+      126.34835423000001,
+      34.94181459399999,
+      127.58491136999999,
+      37.742987306
+    ],
+    "solar_source_rows_after_filter": 5,
+    "region_keyword": "광주",
+    "region_keyword_selected": "광주",
+    "vworld_mode": "api_polygon_to_grid",
+    "vworld_layers": {
+      "no_fly": "LT_C_AISPRHC",
+      "restricted": "LT_C_AISRESC"
+    },
+    "vworld_raw_files": [
+      "data/raw/vworld_nofly.json",
+      "data/raw/vworld_restricted.json"
+    ],
+    "vworld_feature_counts": {
+      "no_fly": 6,
+      "restricted": 18
+    },
+    "vworld_cells_2d": {
+      "no_fly": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          7,
+          4
+        ]
+      ],
+      "restricted": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          4,
+          7
+        ]
+      ]
+    },
+    "nofly_coverage_ratio": 0.078125,
+    "broad_nofly_cells_2d": [],
+    "vworld_relaxation": {
+      "protected_cells_removed_from_nofly_2d": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          7
+        ]
+      ],
+      "nofly_2d_coverage_before_relax": 0.078125,
+      "downgraded_nofly_to_restricted_due_to_coverage": false,
+      "nofly_altitude_mode_after_relax": "middle",
+      "targets_reachable_from_base_after_relax": true
+    },
+    "weather_mode": "kma_api",
+    "kma_obs": {
+      "PTY": "0",
+      "REH": "47",
+      "RN1": "0",
+      "T1H": "27.9",
+      "UUU": "-1.7",
+      "VEC": "54",
+      "VVV": "-1.2",
+      "WSD": "2.2"
+    },
+    "kma_grid": [
+      60,
+      100
+    ],
+    "base_date": "20260524",
+    "base_time": "1600",
+    "mission_center": [
+      36.34240095,
+      126.9666328
+    ],
+    "kma_endpoint": "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst"
+  }
+}
