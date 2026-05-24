@@ -30,7 +30,7 @@ def epsilon_greedy(
     return greedy_action(Q[state], rng)
 
 
-def reachable_states(env: UAVSolarEnv, limit: int = 20000) -> List[State]:
+def reachable_states(env: UAVSolarEnv, limit: int = 60000) -> List[State]:
     """Collect states reachable from the initial state. This keeps DP fast enough for a small project."""
     start = env.initial_state()
     seen = {start}
@@ -50,9 +50,9 @@ def reachable_states(env: UAVSolarEnv, limit: int = 20000) -> List[State]:
 
 
 def value_iteration(
-    env: UAVSolarEnv, gamma: float = 0.95, theta: float = 1e-5, max_iter: int = 500
+    env: UAVSolarEnv, gamma: float = 0.95, theta: float = 1e-4, max_iter: int = 200
 ) -> Tuple[Policy, Dict[State, float]]:
-    states = reachable_states(env)
+    states = reachable_states(env, limit=200000)
     V: Dict[State, float] = {s: 0.0 for s in states}
     transition_cache: Dict[
         Tuple[State, str], List[Tuple[float, State, float, bool]]

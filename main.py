@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import pickle
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -82,7 +83,7 @@ def main():
         description="3D UAV solar inspection MDP with Value Iteration, Q-learning, and SARSA"
     )
     parser.add_argument("--scenario", default="data/scenario.json")
-    parser.add_argument("--episodes", type=int, default=30000)
+    parser.add_argument("--episodes", type=int, default=50000)
     parser.add_argument("--eval-episodes", type=int, default=300)
     parser.add_argument("--output-dir", default="results")
     parser.add_argument("--alpha", type=float, default=0.10)
@@ -107,9 +108,21 @@ def main():
     print(f"Actions: {env.actions}\n")
 
     print("Running Value Iteration...")
-    vi_policy, V = value_iteration(env, gamma=0.95, theta=1e-5, max_iter=500)
+
+    vi_cache = out_dir / "vi_policy.pkl"
+
+    if vi_cache.exists():
+        print("Loading cached Value Iteration policy...")
+        with vi_cache.open("rb") as f:
+            vi_policy = pickle.load(f)
+    else:
+        vi_policy, V = value_iteration(env, gamma=0.99, theta=1e-4, max_iter=150)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        with vi_cache.open("wb") as f:
+            pickle.dump(vi_policy, f)
+
     vi_metrics = evaluate_policy(
-        factory, lambda s: vi_policy.get(s, "hover"), episodes=args.eval_episodes
+        factory, lambda s: vi_policy[s], episodes=args.eval_episodes
     )
     vi_metrics["algorithm"] = "Value Iteration"
 
@@ -119,7 +132,7 @@ def main():
         episodes=args.episodes,
         alpha=q_alpha,
         alpha_end=args.alpha_end,
-        gamma=0.95,
+        gamma=0.99,
         epsilon_start=args.epsilon_start,
         epsilon_end=args.epsilon_end,
         optimistic_init=args.optimistic_init,
@@ -137,7 +150,7 @@ def main():
         episodes=args.episodes,
         alpha=sarsa_alpha,
         alpha_end=args.alpha_end,
-        gamma=0.95,
+        gamma=0.99,
         epsilon_start=args.epsilon_start,
         epsilon_end=args.epsilon_end,
         optimistic_init=args.optimistic_init,

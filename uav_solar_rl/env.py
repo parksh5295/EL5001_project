@@ -459,7 +459,7 @@ class UAVSolarEnv:
                 for z in range(nz):
 
                     for b in range(
-                        1,
+                        0,
                         self.max_battery + 1,
                     ):
 
