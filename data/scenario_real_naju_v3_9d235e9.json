@@ -1,0 +1,430 @@
+{
+  "grid_size": [
+    8,
+    8,
+    3
+  ],
+  "base": [
+    0,
+    0,
+    0
+  ],
+  "targets": [
+    [
+      1,
+      2,
+      1
+    ],
+    [
+      3,
+      1,
+      1
+    ]
+  ],
+  "charging_pads": [
+    [
+      0,
+      3,
+      0
+    ],
+    [
+      3,
+      0,
+      0
+    ],
+    [
+      2,
+      2,
+      0
+    ]
+  ],
+  "no_fly_cells": [],
+  "restricted_cells": [],
+  "initial_wind": "Calm",
+  "wind_states": [
+    "Calm",
+    "EastWind",
+    "NorthWind"
+  ],
+  "wind_transition": {
+    "Calm": {
+      "Calm": 0.85,
+      "EastWind": 0.1,
+      "NorthWind": 0.05
+    },
+    "EastWind": {
+      "EastWind": 0.7,
+      "Calm": 0.2,
+      "NorthWind": 0.1
+    },
+    "NorthWind": {
+      "NorthWind": 0.7,
+      "Calm": 0.2,
+      "EastWind": 0.1
+    }
+  },
+  "queue_transition": {
+    "Short": {
+      "Short": 0.7,
+      "Long": 0.3
+    },
+    "Long": {
+      "Long": 0.6,
+      "Short": 0.4
+    }
+  },
+  "max_battery": 18,
+  "max_steps": 150,
+  "reward": {
+    "inspect_new_target": 25,
+    "finish_all_and_return_base": 150,
+    "step_cost": -1,
+    "move_battery_cost": -1,
+    "ascend_extra_battery_cost": -1,
+    "charge_short_queue_cost": -3,
+    "charge_long_queue_cost": -12,
+    "restricted_area_cost": -10,
+    "no_fly_violation": -80,
+    "battery_depletion": -80,
+    "invalid_action_cost": -10
+  },
+  "metadata": {
+    "data_grounding": "solar_csv + VWorld_API + KMA_API_or_manual_wind",
+    "solar_rows_used": [],
+    "solar_bbox": [
+      126.4306577,
+      35.34971019,
+      126.45065770000001,
+      35.36971019
+    ],
+    "solar_source_rows_after_filter": 1,
+    "region_keyword": "나주",
+    "region_keyword_selected": "나주",
+    "vworld_mode": "api_polygon_to_grid",
+    "vworld_layers": {
+      "no_fly": "LT_C_AISPRHC",
+      "restricted": "LT_C_AISRESC"
+    },
+    "vworld_raw_files": [
+      "data/raw/vworld_nofly.json",
+      "data/raw/vworld_restricted.json"
+    ],
+    "vworld_feature_counts": {
+      "no_fly": 1,
+      "restricted": 0
+    },
+    "vworld_cells_2d": {
+      "no_fly": [],
+      "restricted": []
+    },
+    "nofly_coverage_ratio": 1.0,
+    "broad_nofly_cells_2d": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        7
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        7
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        4,
+        7
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        1
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        7,
+        7
+      ]
+    ],
+    "vworld_relaxation": {
+      "protected_cells_removed_from_nofly_2d": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "nofly_2d_coverage_before_relax": 0.0,
+      "downgraded_nofly_to_restricted_due_to_coverage": false,
+      "nofly_altitude_mode_after_relax": "middle",
+      "targets_reachable_from_base_after_relax": true
+    },
+    "weather_mode": "kma_api",
+    "kma_obs": {
+      "PTY": "0",
+      "REH": "94",
+      "RN1": "0",
+      "T1H": "16.6",
+      "UUU": "-0.7",
+      "VEC": "58",
+      "VVV": "-0.4",
+      "WSD": "0.9"
+    },
+    "kma_grid": [
+      51,
+      79
+    ],
+    "base_date": "20260525",
+    "base_time": "0000",
+    "mission_center": [
+      35.35971019,
+      126.4406577
+    ],
+    "kma_endpoint": "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst"
+  }
+}

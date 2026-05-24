@@ -7,3 +7,5 @@ results/*.json
 .DS_Store
 
 run.txt
+
+*.zip

@@ -9,68 +9,68 @@
       "items": {
         "item": [
           {
-            "baseDate": "20260524",
-            "baseTime": "2300",
+            "baseDate": "20260525",
+            "baseTime": "0000",
             "category": "PTY",
-            "nx": 60,
-            "ny": 100,
+            "nx": 51,
+            "ny": 79,
             "obsrValue": "0"
           },
           {
-            "baseDate": "20260524",
-            "baseTime": "2300",
+            "baseDate": "20260525",
+            "baseTime": "0000",
             "category": "REH",
-            "nx": 60,
-            "ny": 100,
-            "obsrValue": "99"
+            "nx": 51,
+            "ny": 79,
+            "obsrValue": "94"
           },
           {
-            "baseDate": "20260524",
-            "baseTime": "2300",
+            "baseDate": "20260525",
+            "baseTime": "0000",
             "category": "RN1",
-            "nx": 60,
-            "ny": 100,
+            "nx": 51,
+            "ny": 79,
             "obsrValue": "0"
           },
           {
-            "baseDate": "20260524",
-            "baseTime": "2300",
+            "baseDate": "20260525",
+            "baseTime": "0000",
             "category": "T1H",
-            "nx": 60,
-            "ny": 100,
-            "obsrValue": "16.8"
+            "nx": 51,
+            "ny": 79,
+            "obsrValue": "16.6"
           },
           {
-            "baseDate": "20260524",
-            "baseTime": "2300",
+            "baseDate": "20260525",
+            "baseTime": "0000",
             "category": "UUU",
-            "nx": 60,
-            "ny": 100,
-            "obsrValue": "-0.2"
+            "nx": 51,
+            "ny": 79,
+            "obsrValue": "-0.7"
           },
           {
-            "baseDate": "20260524",
-            "baseTime": "2300",
+            "baseDate": "20260525",
+            "baseTime": "0000",
             "category": "VEC",
-            "nx": 60,
-            "ny": 100,
-            "obsrValue": "149"
+            "nx": 51,
+            "ny": 79,
+            "obsrValue": "58"
           },
           {
-            "baseDate": "20260524",
-            "baseTime": "2300",
+            "baseDate": "20260525",
+            "baseTime": "0000",
             "category": "VVV",
-            "nx": 60,
-            "ny": 100,
-            "obsrValue": "0.5"
+            "nx": 51,
+            "ny": 79,
+            "obsrValue": "-0.4"
           },
           {
-            "baseDate": "20260524",
-            "baseTime": "2300",
+            "baseDate": "20260525",
+            "baseTime": "0000",
             "category": "WSD",
-            "nx": 60,
-            "ny": 100,
-            "obsrValue": "0.5"
+            "nx": 51,
+            "ny": 79,
+            "obsrValue": "0.9"
           }
         ]
       },
