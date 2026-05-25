@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import pickle
 import random
 from pathlib import Path
 from typing import Dict, List
@@ -119,6 +120,159 @@ def plot_episode_mae_curves(
     plt.close()
 
 
+def rolling_mean(values: List[float], window: int) -> List[float]:
+    if not values:
+        return []
+    w = max(1, window)
+    out: List[float] = []
+    running = 0.0
+    for i, v in enumerate(values):
+        running += v
+        if i >= w:
+            running -= values[i - w]
+        denom = min(i + 1, w)
+        out.append(running / denom)
+    return out
+
+
+def save_training_trace_csv(
+    out_path: Path,
+    expected_returns: List[float],
+    expected_success: List[float],
+    risk_returns: List[float],
+    risk_success: List[float],
+):
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(
+            [
+                "episode",
+                "expected_sarsa_return",
+                "expected_sarsa_success",
+                "risk_aware_return",
+                "risk_aware_success",
+            ]
+        )
+        for i, row in enumerate(
+            zip(expected_returns, expected_success, risk_returns, risk_success), start=1
+        ):
+            writer.writerow([i, *row])
+
+
+def plot_learning_curves(
+    out_dir: Path,
+    expected_returns: List[float],
+    expected_success: List[float],
+    risk_returns: List[float],
+    risk_success: List[float],
+    window: int,
+    vi_mean_return: float,
+    vi_success_rate: float,
+):
+    out_dir.mkdir(parents=True, exist_ok=True)
+    x = list(range(1, len(expected_returns) + 1))
+
+    exp_return_smooth = rolling_mean(expected_returns, window)
+    risk_return_smooth = rolling_mean(risk_returns, window)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(x, exp_return_smooth, label="Expected SARSA", linewidth=1.5)
+    plt.plot(x, risk_return_smooth, label="Risk-aware Q-learning", linewidth=1.5)
+    plt.axhline(
+        y=vi_mean_return,
+        linestyle="--",
+        color="gray",
+        linewidth=1.2,
+        label="VI eval reference",
+    )
+    plt.xlabel("episodes")
+    plt.ylabel(f"return (rolling mean, window={window})")
+    plt.title("Learning Curve: Episode Return")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_dir / "learning_curve_return.png", dpi=180)
+    plt.close()
+
+    exp_success_smooth = rolling_mean(expected_success, window)
+    risk_success_smooth = rolling_mean(risk_success, window)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(x, exp_success_smooth, label="Expected SARSA", linewidth=1.5)
+    plt.plot(x, risk_success_smooth, label="Risk-aware Q-learning", linewidth=1.5)
+    plt.axhline(
+        y=vi_success_rate,
+        linestyle="--",
+        color="gray",
+        linewidth=1.2,
+        label="VI eval reference",
+    )
+    plt.xlabel("episodes")
+    plt.ylabel(f"success rate (rolling mean, window={window})")
+    plt.title("Learning Curve: Episode Success Rate")
+    plt.ylim(0.0, 1.0)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_dir / "learning_curve_success.png", dpi=180)
+    plt.close()
+
+
+def _qtable_to_plain(model_q: dict) -> dict:
+    return {state: dict(action_values) for state, action_values in model_q.items()}
+
+
+def save_run_artifacts(
+    out_dir: Path,
+    args: argparse.Namespace,
+    rows: list[dict],
+    vi_policy: dict,
+    vi_values: dict,
+    expected_q: dict,
+    risk_q: dict,
+    expected_returns: List[float],
+    expected_success: List[float],
+    risk_returns: List[float],
+    risk_success: List[float],
+):
+    artifacts_dir = out_dir / "artifacts"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+    with (artifacts_dir / "run_manifest.json").open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "args": vars(args),
+                "metrics_rows": rows,
+                "num_episodes_logged": len(expected_returns),
+                "notes": "Use model_tables.pkl and training traces for additional offline plotting.",
+            },
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+    with (artifacts_dir / "model_tables.pkl").open("wb") as f:
+        pickle.dump(
+            {
+                "vi_policy": dict(vi_policy),
+                "vi_values": dict(vi_values),
+                "expected_sarsa_q": _qtable_to_plain(expected_q),
+                "risk_aware_q": _qtable_to_plain(risk_q),
+            },
+            f,
+        )
+
+    with (artifacts_dir / "training_traces.pkl").open("wb") as f:
+        pickle.dump(
+            {
+                "expected_returns": expected_returns,
+                "expected_success": expected_success,
+                "risk_returns": risk_returns,
+                "risk_success": risk_success,
+            },
+            f,
+        )
+
+
 def epsilon_greedy_probs(
     q_values: Dict[str, float], actions: List[str], epsilon: float
 ) -> Dict[str, float]:
@@ -143,6 +297,8 @@ def expected_sarsa(
     epsilon_decay: float = 0.9997,
     optimistic_init: float = 0.0,
     seed: int = 2,
+    return_trace: List[float] | None = None,
+    success_trace: List[float] | None = None,
 ):
     rng = random.Random(seed)
     env = env_factory_fn()
@@ -154,10 +310,15 @@ def expected_sarsa(
         alpha_t = max(alpha_end, alpha * (1.0 - frac))
         s = env.reset()
         done = False
+        ep_return = 0.0
+        ep_success = 0.0
         while not done:
             a = masked_epsilon_greedy(Q, env, s, epsilon, rng)
             result = env.step(a)
             ns, r, done = result.next_state, result.reward, result.done
+            ep_return += r
+            if result.info.get("success"):
+                ep_success = 1.0
             next_valid = get_valid_actions(env, ns)
             probs = epsilon_greedy_probs(Q[ns], next_valid, epsilon)
             expected_next = sum(probs[na] * Q[ns][na] for na in next_valid)
@@ -165,6 +326,10 @@ def expected_sarsa(
             Q[s][a] += alpha_t * (target - Q[s][a])
             s = ns
         epsilon = max(epsilon_end, epsilon * epsilon_decay)
+        if return_trace is not None:
+            return_trace.append(ep_return)
+        if success_trace is not None:
+            success_trace.append(ep_success)
     return Q
 
 
@@ -180,6 +345,8 @@ def risk_aware_q_learning(
     optimistic_init: float = 0.0,
     risk_penalty_weight: float = 40.0,
     seed: int = 1,
+    return_trace: List[float] | None = None,
+    success_trace: List[float] | None = None,
 ):
     """Model-free risk-aware Q-learning using sampled failure signal only."""
     rng = random.Random(seed)
@@ -192,12 +359,17 @@ def risk_aware_q_learning(
         alpha_t = max(alpha_end, alpha * (1.0 - frac))
         s = env.reset()
         done = False
+        ep_return = 0.0
+        ep_success = 0.0
         while not done:
             a = masked_epsilon_greedy(Q, env, s, epsilon, rng)
             result = env.step(a)
             ns, r, done = result.next_state, result.reward, result.done
             nofly_fail = result.info.get("failure") == "no_fly_violation"
             shaped_r = r - (risk_penalty_weight if nofly_fail else 0.0)
+            ep_return += shaped_r
+            if result.info.get("success"):
+                ep_success = 1.0
 
             next_valid = get_valid_actions(env, ns)
             if done:
@@ -209,6 +381,10 @@ def risk_aware_q_learning(
             Q[s][a] += alpha_t * (target - Q[s][a])
             s = ns
         epsilon = max(epsilon_end, epsilon * epsilon_decay)
+        if return_trace is not None:
+            return_trace.append(ep_return)
+        if success_trace is not None:
+            success_trace.append(ep_success)
     return Q
 
 
@@ -366,6 +542,12 @@ def main():
         default="episode_mae_vs_vi.png",
         help="Output image filename for episode-wise graph.",
     )
+    parser.add_argument(
+        "--learning-curve-window",
+        type=int,
+        default=200,
+        help="Rolling window for episode return/success learning curves.",
+    )
     args = parser.parse_args()
 
     scenario_path = args.scenario
@@ -379,7 +561,7 @@ def main():
     print(f"Actions: {env.actions}\n")
 
     print("Running Value Iteration...")
-    vi_policy, _V = value_iteration(
+    vi_policy, V = value_iteration(
         env,
         gamma=args.gamma,
         theta=1e-5,
@@ -393,6 +575,8 @@ def main():
     vi_metrics["algorithm"] = "Value Iteration (DP baseline)"
 
     print("Training Expected SARSA...")
+    exp_return_trace: List[float] = []
+    exp_success_trace: List[float] = []
     QES = expected_sarsa(
         factory,
         episodes=args.episodes,
@@ -403,6 +587,8 @@ def main():
         epsilon_end=args.epsilon_end,
         optimistic_init=args.optimistic_init,
         seed=2,
+        return_trace=exp_return_trace,
+        success_trace=exp_success_trace,
     )
     exp_sarsa_policy = greedy_policy_from_q(QES, env, seed=202)
     exp_sarsa_metrics = evaluate_policy(
@@ -411,6 +597,8 @@ def main():
     exp_sarsa_metrics["algorithm"] = "Expected SARSA (MF baseline)"
 
     print("Training Risk-aware Q-learning...")
+    risk_return_trace: List[float] = []
+    risk_success_trace: List[float] = []
     QR = risk_aware_q_learning(
         factory,
         episodes=args.episodes,
@@ -422,6 +610,8 @@ def main():
         optimistic_init=args.optimistic_init,
         risk_penalty_weight=args.risk_penalty_weight,
         seed=1,
+        return_trace=risk_return_trace,
+        success_trace=risk_success_trace,
     )
     risk_policy = greedy_policy_from_q(QR, env, seed=101)
     risk_metrics = evaluate_policy(factory, risk_policy, episodes=args.eval_episodes)
@@ -471,6 +661,38 @@ def main():
             output_name=args.episode_plot_output_name,
         )
         save_episode_curve_csv(out_dir / "episode_mae_vs_vi.csv", curves, sample_mean)
+
+    save_training_trace_csv(
+        out_dir / "episode_training_trace.csv",
+        exp_return_trace,
+        exp_success_trace,
+        risk_return_trace,
+        risk_success_trace,
+    )
+    plot_learning_curves(
+        out_dir,
+        exp_return_trace,
+        exp_success_trace,
+        risk_return_trace,
+        risk_success_trace,
+        window=args.learning_curve_window,
+        vi_mean_return=float(vi_metrics["mean_return"]),
+        vi_success_rate=float(vi_metrics["success_rate"]),
+    )
+
+    save_run_artifacts(
+        out_dir=out_dir,
+        args=args,
+        rows=rows,
+        vi_policy=vi_policy,
+        vi_values=V,
+        expected_q=QES,
+        risk_q=QR,
+        expected_returns=exp_return_trace,
+        expected_success=exp_success_trace,
+        risk_returns=risk_return_trace,
+        risk_success=risk_success_trace,
+    )
 
     sample = rollout(UAVSolarEnv(scenario_path, seed=100), risk_policy)
     print_rollout(sample, "Risk-aware Q-learning policy")

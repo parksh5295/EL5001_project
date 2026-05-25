@@ -12,3 +12,6 @@ run.txt
 *.zip
 
 *.pkl
+
+results/**/artifacts/
+results/**/checkpoints/
