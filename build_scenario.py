@@ -1,18 +1,8 @@
 from __future__ import annotations
 
-"""
-Build data/scenario.json from real data.
-
-Recommended run:
-    python build_scenario.py --solar-csv data/solar.csv --use-vworld --use-kma --output data/scenario.json
-
-Data roles:
-    - Solar CSV: inspection targets
-    - VWorld API: no-fly / restricted cells
-    - KMA API: initial wind state
-
-If KMA key is missing, run without --use-kma and set --wind manually.
-"""
+# Build `scenario.json` from real inputs.
+# Quick example:
+# python build_scenario.py --solar-csv data/solar.csv --use-vworld --use-kma --output data/scenario.json
 
 import argparse
 import json
@@ -420,7 +410,7 @@ def relax_and_validate_airspace(
     protected2d |= {(p[0], p[1]) for p in charging_pads}
     protected2d |= {(t[0], t[1]) for t in targets}
 
-    # Keep mission-critical cells feasible even when VWorld polygon fully covers a tiny grid.
+    # Do not block base/target/pad cells.
     nofly2d -= protected2d
     restricted2d -= nofly2d
 
@@ -431,7 +421,7 @@ def relax_and_validate_airspace(
         restricted2d |= nofly2d
         nofly2d = set()
 
-    # Use middle-altitude no-fly to avoid over-constraining tiny toy grids.
+    # Keep no-fly at middle altitude in this small grid.
     no_fly_relaxed: list[list[int]] = [[x, y, 1] for (x, y) in sorted(nofly2d) if nz > 1]
     restricted_relaxed = expand_to_3d(sorted(restricted2d), altitude_mode="middle")
 
@@ -597,11 +587,8 @@ def latlon_to_kma_grid(lat: float, lon: float) -> tuple[int, int]:
 
 
 def kma_base_time_candidates(hours_back: int = 8) -> list[tuple[str, str]]:
-    """Return recent base_date/base_time candidates for KMA ultra-short nowcast.
-
-    KMA values can be delayed, so trying only the latest hour often fails.
-    This function tries several previous full hours until a valid response is found.
-    """
+    # Return recent base_date/base_time candidates for KMA ultra-short nowcast.
+    # KMA values can be delayed, so we try several previous full hours.
     now = datetime.now()
     candidates: list[tuple[str, str]] = []
     for h in range(1, hours_back + 1):
@@ -611,7 +598,7 @@ def kma_base_time_candidates(hours_back: int = 8) -> list[tuple[str, str]]:
 
 
 def _clean_kma_key(raw_key: str) -> str:
-    """Accept both Encoding and Decoding keys copied from data.go.kr."""
+    # Accept both Encoding and Decoding keys copied from data.go.kr.
     return unquote(raw_key.strip())
 
 

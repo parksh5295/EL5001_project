@@ -7,7 +7,7 @@ from typing import Callable, Dict, List, Tuple
 import numpy as np
 
 def get_valid_actions(env, state):
-    """Return a safe candidate action set without mutating env state."""
+    # Return valid actions for this state.
     x, y, z, battery, wind, _q1, _q2, mask = state
     pos = (x, y, z)
     valid = []
@@ -103,7 +103,7 @@ def epsilon_greedy(
 
 
 def reachable_states(env: UAVSolarEnv, limit: int = 60000) -> List[State]:
-    """Collect states reachable from the initial state. This keeps DP fast enough for a small project."""
+    # Collect reachable states from the start state.
     start = env.initial_state()
     seen = {start}
     frontier = [start]
@@ -148,7 +148,7 @@ def value_iteration(
             ]
 
     def expected_action_value(state: State, action: str) -> float:
-        """Bellman expectation over stochastic exogenous transitions."""
+        # Expected return of one action under transition probabilities.
         total = 0.0
         for p, ns, r, done in transition_cache[(state, action)]:
             total += p * (r + (0.0 if done else gamma * V.get(ns, 0.0)))
@@ -252,7 +252,7 @@ def q_learning_mae_curve(
     scenario_after: str | None = None,
     switch_episode: int | None = None,
 ) -> List[float]:
-    """Episode-wise MAE curve using the same update semantics as q_learning."""
+    # Track |episode return - VI reference return| per episode.
     rng = random.Random(seed)
     env = env_factory()
     Q = make_q(env.actions, initial_value=optimistic_init)

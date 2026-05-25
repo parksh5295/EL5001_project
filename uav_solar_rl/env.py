@@ -33,12 +33,9 @@ class StepResult:
 
 
 class UAVSolarEnv:
-    """
-    Small tabular MDP for real-data-grounded UAV solar panel inspection.
-
-    State:
-        (x, y, z, battery, wind, queue_P1, queue_P2, target_mask)
-    """
+    # Tabular 3D UAV inspection environment.
+    # State format:
+    # (x, y, z, battery, wind, queue_P1, queue_P2, target_mask)
 
     def __init__(self, scenario_path: str | Path = "data/scenario.json", seed: int = 0):
 
@@ -269,9 +266,7 @@ class UAVSolarEnv:
         next_battery = battery
         next_mask = mask
 
-        # --------------------------------------------------
         # movement actions
-        # --------------------------------------------------
 
         if action in [
             "move_N",
@@ -302,7 +297,7 @@ class UAVSolarEnv:
 
                     reward += float(self.R["ascend_extra_battery_cost"])
 
-                # deterministic wind drift
+                # wind drift
                 if wind != "Calm":
 
                     drifted = self.wind_drift_position(
@@ -320,9 +315,7 @@ class UAVSolarEnv:
                         ):
                             info["wind_drift"] = True
 
-        # --------------------------------------------------
         # hover
-        # --------------------------------------------------
 
         elif action == "hover":
 
@@ -330,9 +323,7 @@ class UAVSolarEnv:
 
             reward += float(self.R["move_battery_cost"])
 
-        # --------------------------------------------------
         # charge
-        # --------------------------------------------------
 
         elif action == "charge":
 
@@ -356,9 +347,7 @@ class UAVSolarEnv:
 
                 reward += float(self.R["invalid_action_cost"])
 
-        # --------------------------------------------------
         # inspect
-        # --------------------------------------------------
 
         elif action == "inspect":
 
@@ -386,9 +375,7 @@ class UAVSolarEnv:
 
             raise ValueError(f"Unknown action: {action}")
 
-        # --------------------------------------------------
         # terminal conditions
-        # --------------------------------------------------
 
         if next_battery < 0 and not done:
 

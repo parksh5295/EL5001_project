@@ -348,7 +348,7 @@ def risk_aware_q_learning(
     return_trace: List[float] | None = None,
     success_trace: List[float] | None = None,
 ):
-    """Model-free risk-aware Q-learning using sampled failure signal only."""
+    # Risk-aware Q-learning using sampled failure signal only.
     rng = random.Random(seed)
     env = env_factory_fn()
     Q = make_q(env.actions, initial_value=optimistic_init)

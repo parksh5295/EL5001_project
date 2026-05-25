@@ -37,7 +37,7 @@ def save_curve_csv(out_csv: Path, curves: dict[str, list[float]], sample_mean: l
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Draw episode-wise MAE graph vs VI from results directory."
+        description="Draw per-episode MAE graph using saved results."
     )
     parser.add_argument("--results-dir", required=True, help="Directory containing metrics.csv")
     parser.add_argument("--scenario", required=True, help="Scenario path used by main.py run")

@@ -449,7 +449,7 @@ def risk_aware_q_learning(
     risk_penalty_weight: float,
     seed: int,
 ):
-    """Risk-aware Q-learning via expected no-fly risk penalty (no action masking)."""
+    # Risk-aware Q-learning via expected no-fly risk penalty (no action masking).
     rng = random.Random(seed)
     env = env_factory_fn()
     Q = make_q(env.actions, initial_value=optimistic_init)
