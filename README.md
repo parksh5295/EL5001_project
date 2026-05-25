@@ -6,9 +6,9 @@ This project builds `scenario.json` from real sources (solar CSV + VWorld + KMA)
 compares tabular RL/DP methods on the resulting MDP.
 
 - DP baseline: `Value Iteration`
-- Model-free baselines: `Q-learning`, `SARSA`, `Expected SARSA`
-- Model-free variants: `Double Q-learning`, `SARSA(lambda)`, `Action-masked Q-learning`, `Risk-aware Q-learning`
-- Assignment-focused script: `main_good_mf.py` (VI + Expected SARSA + Risk-aware Q-learning)
+- Model-free baseline: `Expected SARSA`
+- Our model: `Risk-aware Q-learning`
+- Main training/evaluation entry point: `main_good_mf.py`
 
 ---
 
@@ -17,8 +17,8 @@ compares tabular RL/DP methods on the resulting MDP.
 | Item | Detail |
 |---|---|
 | Python | `3.10.x` recommended (`setup_pipenv.ps1` uses 3.10 by default) |
-| Main entry points | `build_scenario.py`, `main.py`, `main_model_free.py`, `main_good_mf.py` |
-| Quick run | `python -m pipenv run python main.py --scenario data/scenario.json` |
+| Main entry points | `build_scenario.py`, `main_good_mf.py` |
+| Quick run | `python -m pipenv run python main_good_mf.py --scenario data/scenario.json` |
 | Outputs | `results/<run_name>/...` |
 | Run location | Always from repo root (`c:\EL5001_project`) |
 
@@ -76,7 +76,31 @@ Notes:
 
 ---
 
-## 3) Scenario generation
+## 3) Execution order (recommended)
+
+Use the workflow below in order:
+
+1. Preprocess / prepare solar API data (`data/solar_api.csv` -> `data/solar.csv`)
+2. Build scenario JSON (`build_scenario.py`)
+3. Train/evaluate with the main script (`main_good_mf.py`)
+
+---
+
+## 4) Solar data preprocessing
+
+Prepare your downloaded solar API CSV as `data/solar_api.csv`, then save a filtered/cleaned file as `data/solar.csv`.
+
+Minimal example:
+
+```bash
+python c.py
+```
+
+If you already have a ready-to-use `data/solar.csv`, you can skip this step.
+
+---
+
+## 5) Scenario generation
 
 Input sources:
 - `data/solar.csv` (solar facility data)
@@ -97,25 +121,9 @@ python build_scenario.py --solar-csv data/solar.csv --region-keyword 광주 --us
 
 ---
 
-## 4) Training / evaluation scripts
+## 6) Training / evaluation
 
-### 4-1. Base comparison (`main.py`)
-- VI + Q-learning + SARSA
-- Includes `episode_mae_vs_vi.png` by default
-
-```bash
-python -m pipenv run python main.py --scenario data/scenario.json --output-dir results/base_run
-```
-
-### 4-2. Extended model-free comparison (`main_model_free.py`)
-- Q / SARSA / Expected SARSA / Double Q / SARSA(lambda) / Action-masked / Risk-aware
-- Reuses checkpoints on rerun with same config (`results/.../checkpoints`)
-
-```bash
-python -m pipenv run python main_model_free.py --scenario data/scenario.json --output-dir results/model_free_run
-```
-
-### 4-3. Assignment-focused 3-model setup (`main_good_mf.py`)
+### Main script (`main_good_mf.py`)
 - DP baseline: VI
 - Model-free baseline: Expected SARSA
 - Our model: Risk-aware Q-learning
@@ -126,7 +134,7 @@ python -m pipenv run python main_good_mf.py --scenario data/scenario.json --outp
 
 ---
 
-## 5) Output files
+## 7) Output files
 
 Common outputs:
 - `metrics.csv`
@@ -134,39 +142,34 @@ Common outputs:
 - `success_rate.png`
 - `sample_rollout.json`
 
-Additional outputs by script:
+Additional outputs:
 
-- `main.py`, `main_good_mf.py`:
-  - `episode_mae_vs_vi.png`
-  - `episode_mae_vs_vi.csv`
-- `main_good_mf.py`:
-  - `episode_training_trace.csv`
-  - `learning_curve_return.png`
-  - `learning_curve_success.png`
-  - `artifacts/run_manifest.json`
-  - `artifacts/model_tables.pkl`
-  - `artifacts/training_traces.pkl`
-- `main_model_free.py`:
-  - `action_masked_progress.png`
-  - `action_masked_progress.json`
-  - `checkpoints/*.pkl`
+- `episode_mae_vs_vi.png`
+- `episode_mae_vs_vi.csv`
+- `episode_training_trace.csv`
+- `learning_curve_return.png`
+- `learning_curve_success.png`
+- `artifacts/run_manifest.json`
+- `artifacts/model_tables.pkl`
+- `artifacts/training_traces.pkl`
 
 ---
 
-## 6) Reproducibility / post-processing tips
+## 8) Reproducibility / post-processing tips
 
 - For new visualizations, reuse saved traces/csv/pkl instead of rerunning training
 - `run.txt` contains practical experiment command history
-- Large generated files are excluded by `.gitignore` (`artifacts`, `checkpoints`, `*.pkl`, etc.)
+- Large generated files are excluded by `.gitignore` (`artifacts`, `*.pkl`, etc.)
 
 ---
 
-## 7) Project flow
+## 9) Project flow
 
 ```text
-data/solar.csv + VWorld + KMA
-    -> build_scenario.py
+data/solar_api.csv
+    -> preprocess (c.py) -> data/solar.csv
+    -> build_scenario.py + VWorld + KMA
     -> data/scenario*.json
-    -> main*.py train/evaluate
+    -> main_good_mf.py train/evaluate
     -> results/<run_name>/*
 ```
