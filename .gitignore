@@ -10,3 +10,5 @@ data/solar_api.csv
 run.txt
 
 *.zip
+
+*.pkl

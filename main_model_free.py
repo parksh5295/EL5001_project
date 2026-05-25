@@ -93,22 +93,62 @@ def checkpoint_file(out_dir: Path, name: str) -> Path:
     return cp_dir / f"{name}.pkl"
 
 
-def load_checkpoint(path: Path, run_sig: str) -> tuple[Any, dict[str, Any]] | None:
+def _qtable_to_plain(model_q: dict) -> dict:
+    return {state: dict(action_values) for state, action_values in model_q.items()}
+
+
+def _plain_to_qtable(plain_q: dict, actions: list[str]):
+    q = make_q(actions, initial_value=0.0)
+    for state, action_values in plain_q.items():
+        q[state] = {a: float(action_values.get(a, 0.0)) for a in actions}
+    return q
+
+
+def _serialize_model_for_checkpoint(model: Any) -> dict[str, Any]:
+    if isinstance(model, tuple) and len(model) == 2:
+        return {
+            "kind": "double_q",
+            "payload": [_qtable_to_plain(model[0]), _qtable_to_plain(model[1])],
+        }
+    if isinstance(model, dict):
+        return {"kind": "q_table", "payload": _qtable_to_plain(model)}
+    return {"kind": "raw", "payload": model}
+
+
+def _deserialize_model_from_checkpoint(
+    serialized: dict[str, Any], actions: list[str]
+) -> Any:
+    kind = serialized.get("kind", "raw")
+    payload = serialized.get("payload")
+    if kind == "q_table":
+        return _plain_to_qtable(payload, actions)
+    if kind == "double_q":
+        q1 = _plain_to_qtable(payload[0], actions)
+        q2 = _plain_to_qtable(payload[1], actions)
+        return (q1, q2)
+    return payload
+
+
+def load_checkpoint(
+    path: Path, run_sig: str, actions: list[str]
+) -> tuple[Any, dict[str, Any]] | None:
     if not path.exists():
         return None
     with path.open("rb") as f:
         data = pickle.load(f)
     if data.get("run_signature") != run_sig:
         return None
-    return data["model"], data["metrics"]
+    model = _deserialize_model_from_checkpoint(data["model"], actions)
+    return model, data["metrics"]
 
 
 def save_checkpoint(path: Path, run_sig: str, model: Any, metrics: dict[str, Any]) -> None:
+    serialized_model = _serialize_model_for_checkpoint(model)
     with path.open("wb") as f:
         pickle.dump(
             {
                 "run_signature": run_sig,
-                "model": model,
+                "model": serialized_model,
                 "metrics": metrics,
             },
             f,
@@ -594,7 +634,7 @@ def main():
     print(f"Actions: {env.actions}\n")
 
     q_cp = checkpoint_file(out_dir, "q_learning")
-    q_loaded = load_checkpoint(q_cp, run_sig)
+    q_loaded = load_checkpoint(q_cp, run_sig, env.actions)
     if q_loaded is None:
         print("Training Q-learning...")
         Q = q_learning(
@@ -620,7 +660,7 @@ def main():
         q_metrics["algorithm"] = "Q-learning"
 
     sarsa_cp = checkpoint_file(out_dir, "sarsa")
-    sarsa_loaded = load_checkpoint(sarsa_cp, run_sig)
+    sarsa_loaded = load_checkpoint(sarsa_cp, run_sig, env.actions)
     if sarsa_loaded is None:
         print("Training SARSA...")
         QS = sarsa(
@@ -645,7 +685,7 @@ def main():
         sarsa_metrics["algorithm"] = "SARSA"
 
     exp_sarsa_cp = checkpoint_file(out_dir, "expected_sarsa")
-    exp_loaded = load_checkpoint(exp_sarsa_cp, run_sig)
+    exp_loaded = load_checkpoint(exp_sarsa_cp, run_sig, env.actions)
     if exp_loaded is None:
         print("Training Expected SARSA...")
         QES = expected_sarsa(
@@ -672,7 +712,7 @@ def main():
         exp_sarsa_metrics["algorithm"] = "Expected SARSA"
 
     double_cp = checkpoint_file(out_dir, "double_q_learning")
-    double_loaded = load_checkpoint(double_cp, run_sig)
+    double_loaded = load_checkpoint(double_cp, run_sig, env.actions)
     if double_loaded is None:
         print("Training Double Q-learning...")
         Q1, Q2 = double_q_learning(
@@ -699,7 +739,7 @@ def main():
         double_q_metrics["algorithm"] = "Double Q-learning"
 
     sarsa_l_cp = checkpoint_file(out_dir, "sarsa_lambda")
-    sarsa_l_loaded = load_checkpoint(sarsa_l_cp, run_sig)
+    sarsa_l_loaded = load_checkpoint(sarsa_l_cp, run_sig, env.actions)
     if sarsa_l_loaded is None:
         print("Training SARSA(lambda)...")
         QL = sarsa_lambda(
@@ -727,7 +767,7 @@ def main():
         sarsa_lambda_metrics["algorithm"] = "SARSA(lambda)"
 
     masked_cp = checkpoint_file(out_dir, "action_masked_q_learning")
-    masked_loaded = load_checkpoint(masked_cp, run_sig)
+    masked_loaded = load_checkpoint(masked_cp, run_sig, env.actions)
     if masked_loaded is None:
         print("Training Action-masked Q-learning...")
         QM = action_masked_q_learning(
@@ -757,7 +797,7 @@ def main():
         masked_q_metrics["algorithm"] = "Action-masked Q-learning"
 
     risk_cp = checkpoint_file(out_dir, "risk_aware_q_learning")
-    risk_loaded = load_checkpoint(risk_cp, run_sig)
+    risk_loaded = load_checkpoint(risk_cp, run_sig, env.actions)
     if risk_loaded is None:
         print("Training Risk-aware Q-learning...")
         QR = risk_aware_q_learning(
