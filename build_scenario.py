@@ -472,28 +472,23 @@ def auto_place_charging_pads(
         if not is_valid(cell):
             return False
 
-        # 너무 가까운 charging station 중복 방지
         if any(manhattan(cell, p) < 2 for p in charging_pads):
             return False
 
         charging_pads.append(cell)
         return True
 
-    # 1. base는 항상 charging station
     add_if_valid([base[0], base[1], 0])
 
-    # 2. target 근처 charging station 자동 배치
     for target in targets:
 
         x, y, _ = target
 
-        # target 바로 아래 ground 우선 시도
         candidate = [x, y, 0]
 
         if add_if_valid(candidate):
             continue
 
-        # 실패 시 주변 safe cell 탐색
         for radius in range(1, 4):
 
             found = False
