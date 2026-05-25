@@ -265,36 +265,24 @@ The state is approximately Markovian because the next state and reward can be de
 
 The reward is designed as:
 
-$$
-r_t = R^{mission}_t - C^{operation}_t - C^{safety}_t
-$$
+$$r_t = R_t^{\mathrm{mission}} - C_t^{\mathrm{operation}} - C_t^{\mathrm{safety}}$$
 
 Mission reward:
 
-$$
-R^{mission}_t = 40 \cdot \phi_{new} + 200 \cdot \phi_{success}
-$$
+$$R_t^{\mathrm{mission}} = 40 \cdot \phi_{\mathrm{new}} + 200 \cdot \phi_{\mathrm{success}}$$
 
 Operation cost:
 
-$$
-C^{operation}_t = 1 + \phi_{flight} + \phi_{ascend} + c_q(q_t) \cdot \phi_{charge}
-$$
+$$C_t^{\mathrm{operation}} = 1 + \phi_{\mathrm{flight}} + \phi_{\mathrm{ascend}} + c_q(q_t) \cdot \phi_{\mathrm{charge}}$$
 
 Safety cost:
 
-$$
-C^{safety}_t =
-10 \cdot \phi_{restricted}
-+ 80 \cdot \phi_{no\text{-}fly}
-+ 120 \cdot \phi_{battery}
-+ 20 \cdot \phi_{invalid}
-$$
+$$C_t^{\mathrm{safety}} = 10 \cdot \phi_{\mathrm{restricted}} + 80 \cdot \phi_{\mathrm{nofly}} + 120 \cdot \phi_{\mathrm{battery}} + 20 \cdot \phi_{\mathrm{invalid}}$$
 
 Charging queue cost:
 
 $$
-c_q(q_t) =
+c_q(q_t)=
 \begin{cases}
 1, & q_t = \text{short queue} \\
 5, & q_t = \text{long queue}
@@ -305,15 +293,15 @@ Here, each $\phi$ is a binary feature that becomes 1 when the corresponding even
 
 | Term | Meaning |
 |---|---|
-| $\phi_{new}$ | 1 if a new inspection target is inspected |
-| $\phi_{success}$ | 1 if all targets are inspected and the UAV returns to base |
-| $\phi_{flight}$ | 1 if the UAV takes a flight movement action |
-| $\phi_{ascend}$ | 1 if the UAV ascends |
-| $\phi_{charge}$ | 1 if the UAV charges |
-| $\phi_{restricted}$ | 1 if the UAV enters a restricted area |
-| $\phi_{no\text{-}fly}$ | 1 if the UAV violates a no-fly zone |
-| $\phi_{battery}$ | 1 if the UAV depletes its battery |
-| $\phi_{invalid}$ | 1 if the UAV takes an invalid action |
+| $\phi_{\mathrm{new}}$ | 1 if a new inspection target is inspected |
+| $\phi_{\mathrm{success}}$ | 1 if all targets are inspected and the UAV returns to base |
+| $\phi_{\mathrm{flight}}$ | 1 if the UAV takes a flight movement action |
+| $\phi_{\mathrm{ascend}}$ | 1 if the UAV ascends |
+| $\phi_{\mathrm{charge}}$ | 1 if the UAV charges |
+| $\phi_{\mathrm{restricted}}$ | 1 if the UAV enters a restricted area |
+| $\phi_{\mathrm{nofly}}$ | 1 if the UAV violates a no-fly zone |
+| $\phi_{\mathrm{battery}}$ | 1 if the UAV depletes its battery |
+| $\phi_{\mathrm{invalid}}$ | 1 if the UAV takes an invalid action |
 
 The reward function is designed to balance four objectives:
 
@@ -367,12 +355,7 @@ Risk-aware Q-learning is the main model-free RL solution. It uses the standard t
 
 The Q-learning update is:
 
-$$
-Q(s_t,a_t) \leftarrow Q(s_t,a_t)
-+ \alpha \left[
-r_t + \gamma \max_{a'} Q(s_{t+1},a') - Q(s_t,a_t)
-\right]
-$$
+$$Q(s_t,a_t) \leftarrow Q(s_t,a_t) + \alpha \left[ r_t + \gamma \max_{a'} Q(s_{t+1},a') - Q(s_t,a_t) \right]$$
 
 This method is suitable because it learns an adaptive state-dependent policy from sampled interaction without requiring a known transition model during training.
 
