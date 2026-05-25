@@ -126,14 +126,42 @@ def action_nofly_violation_prob(env: UAVSolarEnv, state: State, action: str) -> 
     return nofly_prob
 
 
+def action_nofly_violation_prob_cached(
+    env: UAVSolarEnv,
+    state: State,
+    action: str,
+    cache: dict[tuple[State, str], float],
+) -> float:
+    key = (state, action)
+    if key in cache:
+        return cache[key]
+    nofly_prob = 0.0
+    for p, _, _, done, info in env.transition_distribution(state, action):
+        if done and info.get("failure") == "no_fly_violation":
+            nofly_prob += p
+    cache[key] = nofly_prob
+    return nofly_prob
+
+
 def masked_actions(
-    env: UAVSolarEnv, state: State, max_nofly_prob: float
+    env: UAVSolarEnv,
+    state: State,
+    max_nofly_prob: float,
+    nofly_cache: dict[tuple[State, str], float] | None = None,
 ) -> List[str]:
-    safe = [
-        a
-        for a in env.actions
-        if action_safe_under_nofly(env, state, a, max_nofly_prob=max_nofly_prob)
-    ]
+    if nofly_cache is None:
+        safe = [
+            a
+            for a in env.actions
+            if action_safe_under_nofly(env, state, a, max_nofly_prob=max_nofly_prob)
+        ]
+    else:
+        safe = [
+            a
+            for a in env.actions
+            if action_nofly_violation_prob_cached(env, state, a, nofly_cache)
+            <= max_nofly_prob
+        ]
     return safe if safe else list(env.actions)
 
 
@@ -144,8 +172,14 @@ def masked_epsilon_greedy(
     epsilon: float,
     rng: random.Random,
     max_nofly_prob: float,
+    nofly_cache: dict[tuple[State, str], float] | None = None,
 ) -> str:
-    candidates = masked_actions(env, state, max_nofly_prob=max_nofly_prob)
+    candidates = masked_actions(
+        env,
+        state,
+        max_nofly_prob=max_nofly_prob,
+        nofly_cache=nofly_cache,
+    )
     if rng.random() < epsilon:
         return rng.choice(candidates)
     max_v = max(Q[state][a] for a in candidates)
@@ -170,6 +204,7 @@ def action_masked_q_learning(
     env = env_factory_fn()
     Q = make_q(env.actions, initial_value=optimistic_init)
     epsilon = epsilon_start
+    nofly_cache: dict[tuple[State, str], float] = {}
 
     for ep in range(episodes):
         frac = ep / max(1, episodes - 1)
@@ -184,6 +219,7 @@ def action_masked_q_learning(
                 epsilon=epsilon,
                 rng=rng,
                 max_nofly_prob=max_nofly_prob,
+                nofly_cache=nofly_cache,
             )
             result = env.step(a)
             ns, r, done = result.next_state, result.reward, result.done
@@ -213,6 +249,7 @@ def risk_aware_q_learning(
     env = env_factory_fn()
     Q = make_q(env.actions, initial_value=optimistic_init)
     epsilon = epsilon_start
+    nofly_cache: dict[tuple[State, str], float] = {}
 
     for ep in range(episodes):
         frac = ep / max(1, episodes - 1)
@@ -226,7 +263,9 @@ def risk_aware_q_learning(
                 a = greedy_action(Q[s], rng)
             result = env.step(a)
             ns, r, done = result.next_state, result.reward, result.done
-            risk_penalty = risk_penalty_weight * action_nofly_violation_prob(env, s, a)
+            risk_penalty = risk_penalty_weight * action_nofly_violation_prob_cached(
+                env, s, a, nofly_cache
+            )
             shaped_r = r - risk_penalty
             best_next = max(Q[ns].values())
             target = shaped_r + (0.0 if done else gamma * best_next)
@@ -414,9 +453,15 @@ def double_q_policy_fn(Q1, Q2, actions: List[str], seed: int):
 
 def masked_q_policy_fn(Q, env: UAVSolarEnv, seed: int, max_nofly_prob: float):
     rng = random.Random(seed)
+    nofly_cache: dict[tuple[State, str], float] = {}
 
     def _policy(state: State) -> str:
-        candidates = masked_actions(env, state, max_nofly_prob=max_nofly_prob)
+        candidates = masked_actions(
+            env,
+            state,
+            max_nofly_prob=max_nofly_prob,
+            nofly_cache=nofly_cache,
+        )
         max_v = max(Q[state][a] for a in candidates)
         best = [a for a in candidates if Q[state][a] == max_v]
         return rng.choice(best)
