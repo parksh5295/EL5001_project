@@ -80,48 +80,34 @@ Notes:
 
 Use the workflow below in order:
 
-1. Preprocess / prepare solar API data (`data/solar_api.csv` -> `data/solar.csv`)
+1. Use the provided `data/solar_api.csv`
 2. Build scenario JSON (`build_scenario.py`)
 3. Train/evaluate with the main script (`main_good_mf.py`)
 
 ---
 
-## 4) Solar data preprocessing
-
-Prepare your downloaded solar API CSV as `data/solar_api.csv`, then save a filtered/cleaned file as `data/solar.csv`.
-
-Minimal example:
-
-```bash
-python c.py
-```
-
-If you already have a ready-to-use `data/solar.csv`, you can skip this step.
-
----
-
-## 5) Scenario generation
+## 4) Scenario generation
 
 Input sources:
-- `data/solar.csv` (solar facility data)
+- `data/solar_api.csv` (provided solar facility data)
 - VWorld API (no-fly / restricted cells)
 - KMA API (initial wind state)
 
 Example:
 
 ```bash
-python build_scenario.py --solar-csv data/solar.csv --use-vworld --use-kma --output data/scenario.json
+python build_scenario.py --solar-csv data/solar_api.csv --use-vworld --use-kma --output data/scenario.json
 ```
 
 Region-filtered example:
 
 ```bash
-python build_scenario.py --solar-csv data/solar.csv --region-keyword 광주 --use-vworld --use-kma --output data/scenario_real_gwangju_v1.json
+python build_scenario.py --solar-csv data/solar_api.csv --region-keyword 광주 --use-vworld --use-kma --output data/scenario_real_gwangju_v1.json
 ```
 
 ---
 
-## 6) Training / evaluation
+## 5) Training / evaluation
 
 ### Main script (`main_good_mf.py`)
 - DP baseline: VI
@@ -134,7 +120,7 @@ python -m pipenv run python main_good_mf.py --scenario data/scenario.json --outp
 
 ---
 
-## 7) Output files
+## 6) Output files
 
 Common outputs:
 - `metrics.csv`
@@ -155,7 +141,7 @@ Additional outputs:
 
 ---
 
-## 8) Reproducibility / post-processing tips
+## 7) Reproducibility / post-processing tips
 
 - For new visualizations, reuse saved traces/csv/pkl instead of rerunning training
 - `run.txt` contains practical experiment command history
@@ -163,11 +149,10 @@ Additional outputs:
 
 ---
 
-## 9) Project flow
+## 8) Project flow
 
 ```text
 data/solar_api.csv
-    -> preprocess (c.py) -> data/solar.csv
     -> build_scenario.py + VWorld + KMA
     -> data/scenario*.json
     -> main_good_mf.py train/evaluate
