@@ -1,107 +1,172 @@
-# Real-Data-Grounded 3D UAV Solar Panel Inspection RL
+# EL5001 Project
 
-This project builds a small 3D tabular MDP for UAV solar panel inspection and compares:
+**Real-data-grounded 3D UAV solar inspection MDP with DP / model-free RL comparisons**
 
-- Value Iteration
-- Q-learning
-- SARSA
+This project builds `scenario.json` from real sources (solar CSV + VWorld + KMA) and
+compares tabular RL/DP methods on the resulting MDP.
 
-The scenario is grounded by:
+- DP baseline: `Value Iteration`
+- Model-free baselines: `Q-learning`, `SARSA`, `Expected SARSA`
+- Model-free variants: `Double Q-learning`, `SARSA(lambda)`, `Action-masked Q-learning`, `Risk-aware Q-learning`
+- Assignment-focused script: `main_good_mf.py` (VI + Expected SARSA + Risk-aware Q-learning)
 
-- solar facility CSV data for inspection targets
-- VWorld API for no-fly / restricted cells
-- KMA API for initial wind state
+---
 
-## 1. Install
+## At a glance
 
-```bash
-pip install -r requirements.txt
+| Item | Detail |
+|---|---|
+| Python | `3.10.x` recommended (`setup_pipenv.ps1` uses 3.10 by default) |
+| Main entry points | `build_scenario.py`, `main.py`, `main_model_free.py`, `main_good_mf.py` |
+| Quick run | `python -m pipenv run python main.py --scenario data/scenario.json` |
+| Outputs | `results/<run_name>/...` |
+| Run location | Always from repo root (`c:\EL5001_project`) |
+
+---
+
+## Execution environment (current local profile)
+
+The following values were collected from the current machine for reproducibility reference.
+
+- OS: Windows 10
+- CPU: `12th Gen Intel(R) Core(TM) i5-1235U` (10 cores / 12 threads)
+- RAM: `34,046,570,496` bytes (about 31.7 GiB)
+- Python: `3.10.11`
+
+---
+
+## 1) Installation
+
+### A. Recommended: Pipenv setup scripts
+
+PowerShell:
+
+```powershell
+./setup_pipenv.ps1
 ```
 
-## 2. Prepare `.env`
-
-Copy the example file:
+Bash:
 
 ```bash
-cp .env.example .env
+./setup_pipenv.sh
 ```
 
-Fill it like this:
+### B. Manual install
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+---
+
+## 2) `.env` configuration
+
+Copy `.env.example` to `.env` and fill in your keys:
 
 ```env
-DATA_GO_KR_SERVICE_KEY=your_data_go_kr_key_for_kma
+DATA_GO_KR_SERVICE_KEY=your_kma_key
 VWORLD_KEY=your_vworld_key
 VWORLD_DOMAIN=
 ```
 
 Notes:
+- `VWORLD_KEY` is required for `--use-vworld`
+- `DATA_GO_KR_SERVICE_KEY` is required for `--use-kma`
+- Never commit `.env`
 
-- `VWORLD_KEY` is needed for `--use-vworld`.
-- `DATA_GO_KR_SERVICE_KEY` is needed for `--use-kma`.
-- `VWORLD_DOMAIN` can usually be left blank. If VWorld requires it, put the registered domain such as `http://localhost`.
-- Do not upload `.env` to GitHub.
+---
 
-## 3. Put solar CSV in `data/`
+## 3) Scenario generation
 
-Download the public solar facility CSV and save it as:
+Input sources:
+- `data/solar.csv` (solar facility data)
+- VWorld API (no-fly / restricted cells)
+- KMA API (initial wind state)
 
-```text
-data/solar.csv
-```
-
-The builder automatically detects common Korean/English columns:
-
-- 태양광발전시설명 / SOLAR_GEN_FCLT_NM
-- 위도 / LATITUDE
-- 경도 / LONGITUDE
-- 가동상태구분명 / OPRTNG_STTS_SE_NM
-- 설비용량 / CAPA
-- 소재지도로명주소 / 소재지지번주소
-
-## 4. Build scenario from real data
-
-Solar CSV + VWorld + KMA:
+Example:
 
 ```bash
 python build_scenario.py --solar-csv data/solar.csv --use-vworld --use-kma --output data/scenario.json
 ```
 
-If you do not have the KMA key yet, use VWorld and set wind manually:
+Region-filtered example:
 
 ```bash
-python build_scenario.py --solar-csv data/solar.csv --use-vworld --wind EastWind --output data/scenario.json
+python build_scenario.py --solar-csv data/solar.csv --region-keyword 광주 --use-vworld --use-kma --output data/scenario_real_gwangju_v1.json
 ```
 
-If you want to limit the solar data to one region:
+---
+
+## 4) Training / evaluation scripts
+
+### 4-1. Base comparison (`main.py`)
+- VI + Q-learning + SARSA
+- Includes `episode_mae_vs_vi.png` by default
 
 ```bash
-python build_scenario.py --solar-csv data/solar.csv --region-keyword 나주 --use-vworld --use-kma --output data/scenario.json
+python -m pipenv run python main.py --scenario data/scenario.json --output-dir results/base_run
 ```
 
-## 5. Run RL algorithms
+### 4-2. Extended model-free comparison (`main_model_free.py`)
+- Q / SARSA / Expected SARSA / Double Q / SARSA(lambda) / Action-masked / Risk-aware
+- Reuses checkpoints on rerun with same config (`results/.../checkpoints`)
 
 ```bash
-python main.py --scenario data/scenario.json
+python -m pipenv run python main_model_free.py --scenario data/scenario.json --output-dir results/model_free_run
 ```
 
-## 6. Output
+### 4-3. Assignment-focused 3-model setup (`main_good_mf.py`)
+- DP baseline: VI
+- Model-free baseline: Expected SARSA
+- Our model: Risk-aware Q-learning
 
-Results are saved in:
+```bash
+python -m pipenv run python main_good_mf.py --scenario data/scenario.json --output-dir results/good_mf_run
+```
+
+---
+
+## 5) Output files
+
+Common outputs:
+- `metrics.csv`
+- `mean_return.png`
+- `success_rate.png`
+- `sample_rollout.json`
+
+Additional outputs by script:
+
+- `main.py`, `main_good_mf.py`:
+  - `episode_mae_vs_vi.png`
+  - `episode_mae_vs_vi.csv`
+- `main_good_mf.py`:
+  - `episode_training_trace.csv`
+  - `learning_curve_return.png`
+  - `learning_curve_success.png`
+  - `artifacts/run_manifest.json`
+  - `artifacts/model_tables.pkl`
+  - `artifacts/training_traces.pkl`
+- `main_model_free.py`:
+  - `action_masked_progress.png`
+  - `action_masked_progress.json`
+  - `checkpoints/*.pkl`
+
+---
+
+## 6) Reproducibility / post-processing tips
+
+- For new visualizations, reuse saved traces/csv/pkl instead of rerunning training
+- `run.txt` contains practical experiment command history
+- Large generated files are excluded by `.gitignore` (`artifacts`, `checkpoints`, `*.pkl`, etc.)
+
+---
+
+## 7) Project flow
 
 ```text
-results/metrics.csv
-results/mean_return.png
-results/success_rate.png
-results/sample_rollout.json
-```
-
-## 7. Project logic
-
-The real data are not used to simulate the whole world directly. Instead, they are converted into a small 3D grid MDP:
-
-```text
-solar CSV      -> inspection targets
-VWorld API     -> no-fly/restricted cells
-KMA API        -> initial wind state
-scenario.json  -> tabular MDP for DP/Q-learning/SARSA
+data/solar.csv + VWorld + KMA
+    -> build_scenario.py
+    -> data/scenario*.json
+    -> main*.py train/evaluate
+    -> results/<run_name>/*
 ```
