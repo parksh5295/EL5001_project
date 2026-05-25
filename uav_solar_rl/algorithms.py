@@ -238,6 +238,65 @@ def q_learning(
     return Q
 
 
+def q_learning_mae_curve(
+    env_factory: Callable[[], UAVSolarEnv],
+    vi_ref_return: float,
+    episodes: int = 10000,
+    alpha: float = 0.10,
+    alpha_end: float = 0.03,
+    gamma: float = 0.95,
+    epsilon_start: float = 1.0,
+    epsilon_end: float = 0.05,
+    optimistic_init: float = 0.0,
+    seed: int = 1,
+    scenario_after: str | None = None,
+    switch_episode: int | None = None,
+) -> List[float]:
+    """Episode-wise MAE curve using the same update semantics as q_learning."""
+    rng = random.Random(seed)
+    env = env_factory()
+    Q = make_q(env.actions, initial_value=optimistic_init)
+    mae_curve: List[float] = []
+
+    for ep in range(episodes):
+        if (
+            scenario_after is not None
+            and switch_episode is not None
+            and ep == switch_episode
+        ):
+            env = UAVSolarEnv(scenario_path=scenario_after, seed=seed)
+
+        frac = ep / max(1, episodes - 1)
+        alpha_t = max(alpha_end, alpha * (1.0 - frac))
+        epsilon = max(epsilon_end, epsilon_start * (1.0 - frac))
+
+        s = env.reset()
+        done = False
+        ep_return = 0.0
+
+        while not done:
+            a = masked_epsilon_greedy(Q, env, s, epsilon, rng)
+            result = env.step(a)
+            ns = result.next_state
+            r = result.reward
+            done = result.done
+            ep_return += r
+
+            next_valid_actions = get_valid_actions(env, ns)
+            if done:
+                target = r
+            else:
+                best_next = max(Q[ns][na] for na in next_valid_actions)
+                target = r + gamma * best_next
+
+            Q[s][a] += alpha_t * (target - Q[s][a])
+            s = ns
+
+        mae_curve.append(abs(ep_return - vi_ref_return))
+
+    return mae_curve
+
+
 def sarsa(
     env_factory: Callable[[], UAVSolarEnv],
     episodes: int = 30000,
