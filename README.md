@@ -158,3 +158,92 @@ data/solar_api.csv
     -> main_good_mf.py train/evaluate
     -> results/<run_name>/*
 ```
+
+
+
+---
+
+## Project Report
+
+### 1. Project Overview
+
+This project formulates a risk-aware 3D UAV solar panel inspection task as a tabular Markov Decision Process (MDP). The UAV agent must inspect multiple solar panel targets and return to the base while considering limited battery capacity, stochastic wind disturbance, no-fly zones, restricted areas, and charging-station queue conditions.
+
+The main objective is not to build a full real-world UAV simulator, but to construct a simplified and interpretable tabular MDP that captures key sequential decision-making challenges in UAV inspection. The agent must decide when to move, change altitude, inspect a target, charge its battery, or avoid risky regions.
+
+### 2. Why This Problem is Sequential
+
+This problem is sequential because each action changes the future decision context. For example, moving toward a target consumes battery and may expose the UAV to wind drift or no-fly risk. Charging may reduce battery failure risk but introduces queue-related waiting cost. Inspecting a target changes the mission progress, and returning to base is only meaningful after all required targets have been inspected.
+
+Therefore, the quality of an action cannot be evaluated only by its immediate reward. The agent must learn a long-term policy that balances mission completion, energy use, charging delay, and safety.
+
+### 3. MDP Formulation
+
+#### Agent
+
+The decision-making agent is a UAV operating in a discretized 3D inspection environment.
+
+#### State
+
+The state is defined as:
+
+\[
+s_t = (x_t, y_t, z_t, b_t, w_t, q^c_t, q^i_t, n^{inspect}_t)
+\]
+
+where:
+
+- `x, y, z`: UAV position in the 3D grid
+- `b`: remaining battery level
+- `w`: wind condition, one of `{Calm, EastWind, NorthWind}`
+- `q_c`: charging queue state
+- `q_i`: inspection progress or inspection-related queue state
+- `n_inspect`: number of inspected targets
+
+These variables are included because they are necessary for navigation, battery-safe planning, wind-aware movement, charging-delay decisions, and mission progress tracking.
+
+In our simplified setting, the inspection order is assumed to be fixed, so `n_inspect` is sufficient to determine the next inspection target. If the inspection order is made flexible in future work, `n_inspect` should be replaced by a target inspection mask.
+
+#### Action
+
+The action space is:
+
+\[
+A = \{
+Move\_N, Move\_S, Move\_E, Move\_W,
+Ascend, Descend,
+Hover, Charge, Inspect
+\}
+\]
+
+The actions are grouped into three categories:
+
+- Horizontal movement: `Move_N`, `Move_S`, `Move_E`, `Move_W`
+- Vertical control: `Ascend`, `Descend`
+- Task actions: `Hover`, `Charge`, `Inspect`
+
+This action space is realistic for a simplified UAV inspection task because the UAV must navigate in 3D, manage altitude, inspect targets, and recharge when needed.
+
+#### Transition Dynamics
+
+The next state depends on the current state and selected action:
+
+\[
+P(s_{t+1} \mid s_t, a_t)
+\]
+
+The transition model includes:
+
+1. Movement dynamics based on the selected action
+2. Wind-dependent stochastic disturbance
+3. Battery update after movement, ascent, descent, hovering, charging, or inspection
+4. Queue-related cost when charging
+5. Mission progress update after successful inspection
+6. Safety outcomes when entering restricted or no-fly areas
+
+The wind transition model is:
+
+```text
+Calm      -> Calm: 0.85, EastWind: 0.10, NorthWind: 0.05
+EastWind  -> EastWind: 0.70, Calm: 0.20, NorthWind: 0.10
+NorthWind -> NorthWind: 0.70, Calm: 0.20, EastWind: 0.10
