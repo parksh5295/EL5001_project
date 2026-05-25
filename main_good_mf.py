@@ -482,13 +482,13 @@ def main():
         description="DP baseline + model-free baseline + our model (risk-aware)"
     )
     parser.add_argument("--scenario", default="data/scenario.json")
-    parser.add_argument("--episodes", type=int, default=100000)
+    parser.add_argument("--episodes", type=int, default=800000)
     parser.add_argument("--eval-episodes", type=int, default=300)
     parser.add_argument("--output-dir", default="results")
     parser.add_argument("--alpha", type=float, default=0.10)
     parser.add_argument("--alpha-end", type=float, default=0.03)
     parser.add_argument("--epsilon-start", type=float, default=1.0)
-    parser.add_argument("--epsilon-end", type=float, default=0.02)
+    parser.add_argument("--epsilon-end", type=float, default=0.08)
     parser.add_argument("--optimistic-init", type=float, default=0.0)
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument(
@@ -496,7 +496,7 @@ def main():
         "--q-alpha",
         dest="risk_q_alpha",
         type=float,
-        default=0.10,
+        default=0.05,
         help="Learning rate for risk-aware Q-learning.",
     )
     parser.add_argument(
@@ -504,7 +504,7 @@ def main():
         "--sarsa-alpha",
         dest="exp_sarsa_alpha",
         type=float,
-        default=0.08,
+        default=0.04,
         help="Learning rate for Expected SARSA baseline.",
     )
     parser.add_argument(
