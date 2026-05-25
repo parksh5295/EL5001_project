@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
+import pickle
 from pathlib import Path
 import random
-from typing import Dict, List
+from typing import Any, Dict, List
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
@@ -42,6 +44,75 @@ def model_free_output_dir(output_dir_arg: str) -> Path:
     if not name.startswith("model_free_"):
         base_dir = base_dir.with_name(f"model_free_{name}")
     return base_dir
+
+
+def scenario_signature(scenario_path: str) -> str:
+    p = Path(scenario_path)
+    if p.exists():
+        return f"{p.resolve()}|{p.stat().st_mtime_ns}"
+    return scenario_path
+
+
+def build_run_signature(args: argparse.Namespace) -> str:
+    fields = [
+        "scenario",
+        "episodes",
+        "eval_episodes",
+        "gamma",
+        "q_alpha",
+        "sarsa_alpha",
+        "exp_sarsa_alpha",
+        "double_q_alpha",
+        "sarsa_lambda_alpha",
+        "masked_q_alpha",
+        "risk_q_alpha",
+        "alpha_end",
+        "epsilon_start",
+        "epsilon_end",
+        "epsilon_decay_q",
+        "epsilon_decay_sarsa",
+        "epsilon_decay_exp_sarsa",
+        "epsilon_decay_double_q",
+        "epsilon_decay_sarsa_lambda",
+        "epsilon_decay_masked_q",
+        "epsilon_decay_risk_q",
+        "optimistic_init",
+        "sarsa_lambda",
+        "risk_nofly_threshold",
+        "risk_penalty_weight",
+    ]
+    data = {k: getattr(args, k) for k in fields}
+    data["scenario_sig"] = scenario_signature(args.scenario)
+    payload = json.dumps(data, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def checkpoint_file(out_dir: Path, name: str) -> Path:
+    cp_dir = out_dir / "checkpoints"
+    cp_dir.mkdir(parents=True, exist_ok=True)
+    return cp_dir / f"{name}.pkl"
+
+
+def load_checkpoint(path: Path, run_sig: str) -> tuple[Any, dict[str, Any]] | None:
+    if not path.exists():
+        return None
+    with path.open("rb") as f:
+        data = pickle.load(f)
+    if data.get("run_signature") != run_sig:
+        return None
+    return data["model"], data["metrics"]
+
+
+def save_checkpoint(path: Path, run_sig: str, model: Any, metrics: dict[str, Any]) -> None:
+    with path.open("wb") as f:
+        pickle.dump(
+            {
+                "run_signature": run_sig,
+                "model": model,
+                "metrics": metrics,
+            },
+            f,
+        )
 
 
 def save_metrics(rows, out_path: Path):
@@ -516,142 +587,200 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     factory = env_factory(scenario_path)
     env = UAVSolarEnv(scenario_path)
+    run_sig = build_run_signature(args)
 
     print("Scenario loaded")
     print(f"Number of states: {len(env.enumerate_states())}")
     print(f"Actions: {env.actions}\n")
 
-    print("Training Q-learning...")
-    Q = q_learning(
-        factory,
-        episodes=args.episodes,
-        alpha=args.q_alpha,
-        alpha_end=args.alpha_end,
-        gamma=args.gamma,
-        epsilon_start=args.epsilon_start,
-        epsilon_end=args.epsilon_end,
-        epsilon_decay=args.epsilon_decay_q,
-        optimistic_init=args.optimistic_init,
-        seed=1,
-    )
-    q_policy = greedy_policy_from_q(Q, env, seed=101)
-    q_metrics = evaluate_policy(factory, q_policy, episodes=args.eval_episodes)
-    q_metrics["algorithm"] = "Q-learning"
+    q_cp = checkpoint_file(out_dir, "q_learning")
+    q_loaded = load_checkpoint(q_cp, run_sig)
+    if q_loaded is None:
+        print("Training Q-learning...")
+        Q = q_learning(
+            factory,
+            episodes=args.episodes,
+            alpha=args.q_alpha,
+            alpha_end=args.alpha_end,
+            gamma=args.gamma,
+            epsilon_start=args.epsilon_start,
+            epsilon_end=args.epsilon_end,
+            epsilon_decay=args.epsilon_decay_q,
+            optimistic_init=args.optimistic_init,
+            seed=1,
+        )
+        q_policy = greedy_policy_from_q(Q, env, seed=101)
+        q_metrics = evaluate_policy(factory, q_policy, episodes=args.eval_episodes)
+        q_metrics["algorithm"] = "Q-learning"
+        save_checkpoint(q_cp, run_sig, Q, q_metrics)
+    else:
+        print("Loading cached Q-learning...")
+        Q, q_metrics = q_loaded
+        q_policy = greedy_policy_from_q(Q, env, seed=101)
+        q_metrics["algorithm"] = "Q-learning"
 
-    print("Training SARSA...")
-    QS = sarsa(
-        factory,
-        episodes=args.episodes,
-        alpha=args.sarsa_alpha,
-        alpha_end=args.alpha_end,
-        gamma=args.gamma,
-        epsilon_start=args.epsilon_start,
-        epsilon_end=args.epsilon_end,
-        epsilon_decay=args.epsilon_decay_sarsa,
-        optimistic_init=args.optimistic_init,
-        seed=2,
-    )
-    sarsa_policy = greedy_policy_from_q(QS, env, seed=202)
-    sarsa_metrics = evaluate_policy(factory, sarsa_policy, episodes=args.eval_episodes)
-    sarsa_metrics["algorithm"] = "SARSA"
+    sarsa_cp = checkpoint_file(out_dir, "sarsa")
+    sarsa_loaded = load_checkpoint(sarsa_cp, run_sig)
+    if sarsa_loaded is None:
+        print("Training SARSA...")
+        QS = sarsa(
+            factory,
+            episodes=args.episodes,
+            alpha=args.sarsa_alpha,
+            alpha_end=args.alpha_end,
+            gamma=args.gamma,
+            epsilon_start=args.epsilon_start,
+            epsilon_end=args.epsilon_end,
+            epsilon_decay=args.epsilon_decay_sarsa,
+            optimistic_init=args.optimistic_init,
+            seed=2,
+        )
+        sarsa_policy = greedy_policy_from_q(QS, env, seed=202)
+        sarsa_metrics = evaluate_policy(factory, sarsa_policy, episodes=args.eval_episodes)
+        sarsa_metrics["algorithm"] = "SARSA"
+        save_checkpoint(sarsa_cp, run_sig, QS, sarsa_metrics)
+    else:
+        print("Loading cached SARSA...")
+        QS, sarsa_metrics = sarsa_loaded
+        sarsa_metrics["algorithm"] = "SARSA"
 
-    print("Training Expected SARSA...")
-    QES = expected_sarsa(
-        factory,
-        episodes=args.episodes,
-        alpha=args.exp_sarsa_alpha,
-        alpha_end=args.alpha_end,
-        gamma=args.gamma,
-        epsilon_start=args.epsilon_start,
-        epsilon_end=args.epsilon_end,
-        epsilon_decay=args.epsilon_decay_exp_sarsa,
-        optimistic_init=args.optimistic_init,
-        seed=3,
-    )
-    expected_sarsa_policy = q_policy_fn(QES, env.actions, seed=303)
-    exp_sarsa_metrics = evaluate_policy(
-        factory, expected_sarsa_policy, episodes=args.eval_episodes
-    )
-    exp_sarsa_metrics["algorithm"] = "Expected SARSA"
+    exp_sarsa_cp = checkpoint_file(out_dir, "expected_sarsa")
+    exp_loaded = load_checkpoint(exp_sarsa_cp, run_sig)
+    if exp_loaded is None:
+        print("Training Expected SARSA...")
+        QES = expected_sarsa(
+            factory,
+            episodes=args.episodes,
+            alpha=args.exp_sarsa_alpha,
+            alpha_end=args.alpha_end,
+            gamma=args.gamma,
+            epsilon_start=args.epsilon_start,
+            epsilon_end=args.epsilon_end,
+            epsilon_decay=args.epsilon_decay_exp_sarsa,
+            optimistic_init=args.optimistic_init,
+            seed=3,
+        )
+        expected_sarsa_policy = q_policy_fn(QES, env.actions, seed=303)
+        exp_sarsa_metrics = evaluate_policy(
+            factory, expected_sarsa_policy, episodes=args.eval_episodes
+        )
+        exp_sarsa_metrics["algorithm"] = "Expected SARSA"
+        save_checkpoint(exp_sarsa_cp, run_sig, QES, exp_sarsa_metrics)
+    else:
+        print("Loading cached Expected SARSA...")
+        QES, exp_sarsa_metrics = exp_loaded
+        exp_sarsa_metrics["algorithm"] = "Expected SARSA"
 
-    print("Training Double Q-learning...")
-    Q1, Q2 = double_q_learning(
-        factory,
-        episodes=args.episodes,
-        alpha=args.double_q_alpha,
-        alpha_end=args.alpha_end,
-        gamma=args.gamma,
-        epsilon_start=args.epsilon_start,
-        epsilon_end=args.epsilon_end,
-        epsilon_decay=args.epsilon_decay_double_q,
-        optimistic_init=args.optimistic_init,
-        seed=4,
-    )
-    double_q_policy = double_q_policy_fn(Q1, Q2, env.actions, seed=404)
-    double_q_metrics = evaluate_policy(
-        factory, double_q_policy, episodes=args.eval_episodes
-    )
-    double_q_metrics["algorithm"] = "Double Q-learning"
+    double_cp = checkpoint_file(out_dir, "double_q_learning")
+    double_loaded = load_checkpoint(double_cp, run_sig)
+    if double_loaded is None:
+        print("Training Double Q-learning...")
+        Q1, Q2 = double_q_learning(
+            factory,
+            episodes=args.episodes,
+            alpha=args.double_q_alpha,
+            alpha_end=args.alpha_end,
+            gamma=args.gamma,
+            epsilon_start=args.epsilon_start,
+            epsilon_end=args.epsilon_end,
+            epsilon_decay=args.epsilon_decay_double_q,
+            optimistic_init=args.optimistic_init,
+            seed=4,
+        )
+        double_q_policy = double_q_policy_fn(Q1, Q2, env.actions, seed=404)
+        double_q_metrics = evaluate_policy(
+            factory, double_q_policy, episodes=args.eval_episodes
+        )
+        double_q_metrics["algorithm"] = "Double Q-learning"
+        save_checkpoint(double_cp, run_sig, (Q1, Q2), double_q_metrics)
+    else:
+        print("Loading cached Double Q-learning...")
+        (Q1, Q2), double_q_metrics = double_loaded
+        double_q_metrics["algorithm"] = "Double Q-learning"
 
-    print("Training SARSA(lambda)...")
-    QL = sarsa_lambda(
-        factory,
-        episodes=args.episodes,
-        alpha=args.sarsa_lambda_alpha,
-        alpha_end=args.alpha_end,
-        gamma=args.gamma,
-        epsilon_start=args.epsilon_start,
-        epsilon_end=args.epsilon_end,
-        epsilon_decay=args.epsilon_decay_sarsa_lambda,
-        optimistic_init=args.optimistic_init,
-        lam=args.sarsa_lambda,
-        seed=5,
-    )
-    sarsa_lambda_policy = q_policy_fn(QL, env.actions, seed=505)
-    sarsa_lambda_metrics = evaluate_policy(
-        factory, sarsa_lambda_policy, episodes=args.eval_episodes
-    )
-    sarsa_lambda_metrics["algorithm"] = "SARSA(lambda)"
+    sarsa_l_cp = checkpoint_file(out_dir, "sarsa_lambda")
+    sarsa_l_loaded = load_checkpoint(sarsa_l_cp, run_sig)
+    if sarsa_l_loaded is None:
+        print("Training SARSA(lambda)...")
+        QL = sarsa_lambda(
+            factory,
+            episodes=args.episodes,
+            alpha=args.sarsa_lambda_alpha,
+            alpha_end=args.alpha_end,
+            gamma=args.gamma,
+            epsilon_start=args.epsilon_start,
+            epsilon_end=args.epsilon_end,
+            epsilon_decay=args.epsilon_decay_sarsa_lambda,
+            optimistic_init=args.optimistic_init,
+            lam=args.sarsa_lambda,
+            seed=5,
+        )
+        sarsa_lambda_policy = q_policy_fn(QL, env.actions, seed=505)
+        sarsa_lambda_metrics = evaluate_policy(
+            factory, sarsa_lambda_policy, episodes=args.eval_episodes
+        )
+        sarsa_lambda_metrics["algorithm"] = "SARSA(lambda)"
+        save_checkpoint(sarsa_l_cp, run_sig, QL, sarsa_lambda_metrics)
+    else:
+        print("Loading cached SARSA(lambda)...")
+        QL, sarsa_lambda_metrics = sarsa_l_loaded
+        sarsa_lambda_metrics["algorithm"] = "SARSA(lambda)"
 
-    print("Training Action-masked Q-learning...")
-    QM = action_masked_q_learning(
-        factory,
-        episodes=args.episodes,
-        alpha=args.masked_q_alpha,
-        alpha_end=args.alpha_end,
-        gamma=args.gamma,
-        epsilon_start=args.epsilon_start,
-        epsilon_end=args.epsilon_end,
-        epsilon_decay=args.epsilon_decay_masked_q,
-        optimistic_init=args.optimistic_init,
-        max_nofly_prob=args.risk_nofly_threshold,
-        seed=6,
-    )
-    masked_q_policy = masked_q_policy_fn(
-        QM, env, seed=606, max_nofly_prob=args.risk_nofly_threshold
-    )
-    masked_q_metrics = evaluate_policy(
-        factory, masked_q_policy, episodes=args.eval_episodes
-    )
-    masked_q_metrics["algorithm"] = "Action-masked Q-learning"
+    masked_cp = checkpoint_file(out_dir, "action_masked_q_learning")
+    masked_loaded = load_checkpoint(masked_cp, run_sig)
+    if masked_loaded is None:
+        print("Training Action-masked Q-learning...")
+        QM = action_masked_q_learning(
+            factory,
+            episodes=args.episodes,
+            alpha=args.masked_q_alpha,
+            alpha_end=args.alpha_end,
+            gamma=args.gamma,
+            epsilon_start=args.epsilon_start,
+            epsilon_end=args.epsilon_end,
+            epsilon_decay=args.epsilon_decay_masked_q,
+            optimistic_init=args.optimistic_init,
+            max_nofly_prob=args.risk_nofly_threshold,
+            seed=6,
+        )
+        masked_q_policy = masked_q_policy_fn(
+            QM, env, seed=606, max_nofly_prob=args.risk_nofly_threshold
+        )
+        masked_q_metrics = evaluate_policy(
+            factory, masked_q_policy, episodes=args.eval_episodes
+        )
+        masked_q_metrics["algorithm"] = "Action-masked Q-learning"
+        save_checkpoint(masked_cp, run_sig, QM, masked_q_metrics)
+    else:
+        print("Loading cached Action-masked Q-learning...")
+        QM, masked_q_metrics = masked_loaded
+        masked_q_metrics["algorithm"] = "Action-masked Q-learning"
 
-    print("Training Risk-aware Q-learning...")
-    QR = risk_aware_q_learning(
-        factory,
-        episodes=args.episodes,
-        alpha=args.risk_q_alpha,
-        alpha_end=args.alpha_end,
-        gamma=args.gamma,
-        epsilon_start=args.epsilon_start,
-        epsilon_end=args.epsilon_end,
-        epsilon_decay=args.epsilon_decay_risk_q,
-        optimistic_init=args.optimistic_init,
-        risk_penalty_weight=args.risk_penalty_weight,
-        seed=7,
-    )
-    risk_q_policy = q_policy_fn(QR, env.actions, seed=707)
-    risk_q_metrics = evaluate_policy(factory, risk_q_policy, episodes=args.eval_episodes)
-    risk_q_metrics["algorithm"] = "Risk-aware Q-learning"
+    risk_cp = checkpoint_file(out_dir, "risk_aware_q_learning")
+    risk_loaded = load_checkpoint(risk_cp, run_sig)
+    if risk_loaded is None:
+        print("Training Risk-aware Q-learning...")
+        QR = risk_aware_q_learning(
+            factory,
+            episodes=args.episodes,
+            alpha=args.risk_q_alpha,
+            alpha_end=args.alpha_end,
+            gamma=args.gamma,
+            epsilon_start=args.epsilon_start,
+            epsilon_end=args.epsilon_end,
+            epsilon_decay=args.epsilon_decay_risk_q,
+            optimistic_init=args.optimistic_init,
+            risk_penalty_weight=args.risk_penalty_weight,
+            seed=7,
+        )
+        risk_q_policy = q_policy_fn(QR, env.actions, seed=707)
+        risk_q_metrics = evaluate_policy(factory, risk_q_policy, episodes=args.eval_episodes)
+        risk_q_metrics["algorithm"] = "Risk-aware Q-learning"
+        save_checkpoint(risk_cp, run_sig, QR, risk_q_metrics)
+    else:
+        print("Loading cached Risk-aware Q-learning...")
+        QR, risk_q_metrics = risk_loaded
+        risk_q_metrics["algorithm"] = "Risk-aware Q-learning"
 
     rows = [
         q_metrics,
