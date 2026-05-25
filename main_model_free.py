@@ -134,8 +134,12 @@ def load_checkpoint(
 ) -> tuple[Any, dict[str, Any]] | None:
     if not path.exists():
         return None
-    with path.open("rb") as f:
-        data = pickle.load(f)
+    try:
+        with path.open("rb") as f:
+            data = pickle.load(f)
+    except (EOFError, pickle.UnpicklingError, AttributeError, ValueError, OSError):
+        # Corrupted or partially written checkpoint; ignore and retrain.
+        return None
     if data.get("run_signature") != run_sig:
         return None
     model = _deserialize_model_from_checkpoint(data["model"], actions)
