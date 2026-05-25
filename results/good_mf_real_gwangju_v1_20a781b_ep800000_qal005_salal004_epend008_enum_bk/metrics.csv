@@ -1,0 +1,4 @@
+algorithm,mean_return,std_return,success_rate,avg_steps,battery_failures,no_fly_violations,restricted_visits,charge_count
+Value Iteration (DP baseline),203.7,61.591909641878566,1.0,31.81,0,0,0,1117
+Expected SARSA (MF baseline),127.74666666666667,142.38029763824613,0.7366666666666667,30.066666666666666,79,0,6,684
+Risk-aware Q-learning (our model),135.58333333333334,133.07044395941406,0.78,34.17,66,0,3,679
