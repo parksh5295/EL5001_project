@@ -7,6 +7,7 @@ import json
 import pickle
 from pathlib import Path
 import random
+import time
 from typing import Any, Dict, List
 from collections import defaultdict
 
@@ -214,6 +215,81 @@ def print_rollout(rows, title: str):
         print("... truncated ...")
 
 
+def _format_duration(seconds: float) -> str:
+    sec = max(0, int(seconds))
+    h = sec // 3600
+    m = (sec % 3600) // 60
+    s = sec % 60
+    return f"{h:02d}:{m:02d}:{s:02d}"
+
+
+def save_action_masked_progress_plot(
+    out_dir: Path,
+    completed_episodes: int,
+    total_episodes: int,
+    elapsed_seconds: float,
+) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    total = max(1, total_episodes)
+    done = min(max(0, completed_episodes), total)
+    remaining = max(0, total - done)
+    progress = done / total
+    eta_seconds = 0.0 if done == 0 else elapsed_seconds * (remaining / max(1, done))
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+    axes[0].bar(["completed", "remaining"], [done, remaining], color=["#2ca02c", "#d3d3d3"])
+    axes[0].set_ylabel("episodes")
+    axes[0].set_title("Action-masked progress")
+    axes[0].text(
+        0.5,
+        0.95,
+        f"{progress * 100:.1f}%",
+        transform=axes[0].transAxes,
+        ha="center",
+        va="top",
+        fontsize=11,
+    )
+
+    axes[1].bar(
+        ["elapsed (min)", "eta (min)"],
+        [elapsed_seconds / 60.0, eta_seconds / 60.0],
+        color=["#1f77b4", "#ff7f0e"],
+    )
+    axes[1].set_ylabel("minutes")
+    axes[1].set_title("Elapsed vs ETA")
+    axes[1].text(
+        0.5,
+        0.95,
+        f"ETA {_format_duration(eta_seconds)}",
+        transform=axes[1].transAxes,
+        ha="center",
+        va="top",
+        fontsize=10,
+    )
+
+    fig.suptitle("Action-masked Q-learning training status")
+    plt.tight_layout()
+    plt.savefig(out_dir / "action_masked_progress.png", dpi=180)
+    plt.close(fig)
+
+    with (out_dir / "action_masked_progress.json").open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "completed_episodes": done,
+                "total_episodes": total,
+                "progress_ratio": progress,
+                "elapsed_seconds": elapsed_seconds,
+                "eta_seconds": eta_seconds,
+                "elapsed_hms": _format_duration(elapsed_seconds),
+                "eta_hms": _format_duration(eta_seconds),
+            },
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+
 def epsilon_greedy_probs(
     q_values: Dict[str, float], actions: List[str], epsilon: float
 ) -> Dict[str, float]:
@@ -314,12 +390,16 @@ def action_masked_q_learning(
     optimistic_init: float,
     max_nofly_prob: float,
     seed: int,
+    progress_dir: Path | None = None,
+    progress_update_every: int = 200,
 ):
     rng = random.Random(seed)
     env = env_factory_fn()
     Q = make_q(env.actions, initial_value=optimistic_init)
     epsilon = epsilon_start
     nofly_cache: dict[tuple[State, str], float] = {}
+    started_at = time.time()
+    update_every = max(1, progress_update_every)
 
     for ep in range(episodes):
         frac = ep / max(1, episodes - 1)
@@ -343,6 +423,16 @@ def action_masked_q_learning(
             Q[s][a] += alpha_t * (target - Q[s][a])
             s = ns
         epsilon = max(epsilon_end, epsilon * epsilon_decay)
+
+        if progress_dir is not None:
+            if (ep + 1) % update_every == 0 or ep == 0 or (ep + 1) == episodes:
+                elapsed = time.time() - started_at
+                save_action_masked_progress_plot(
+                    progress_dir,
+                    completed_episodes=ep + 1,
+                    total_episodes=episodes,
+                    elapsed_seconds=elapsed,
+                )
     return Q
 
 
@@ -624,6 +714,12 @@ def main():
         default=40.0,
         help="Penalty weight for expected no-fly risk in risk-aware Q-learning",
     )
+    parser.add_argument(
+        "--masked-progress-update-every",
+        type=int,
+        default=200,
+        help="Update interval (episodes) for Action-masked progress bar chart.",
+    )
     args = parser.parse_args()
 
     scenario_path = args.scenario
@@ -786,6 +882,8 @@ def main():
             optimistic_init=args.optimistic_init,
             max_nofly_prob=args.risk_nofly_threshold,
             seed=6,
+            progress_dir=out_dir,
+            progress_update_every=args.masked_progress_update_every,
         )
         masked_q_policy = masked_q_policy_fn(
             QM, env, seed=606, max_nofly_prob=args.risk_nofly_threshold
@@ -799,6 +897,12 @@ def main():
         print("Loading cached Action-masked Q-learning...")
         QM, masked_q_metrics = masked_loaded
         masked_q_metrics["algorithm"] = "Action-masked Q-learning"
+        save_action_masked_progress_plot(
+            out_dir,
+            completed_episodes=args.episodes,
+            total_episodes=args.episodes,
+            elapsed_seconds=0.0,
+        )
 
     risk_cp = checkpoint_file(out_dir, "risk_aware_q_learning")
     risk_loaded = load_checkpoint(risk_cp, run_sig, env.actions)
