@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from uav_solar_rl.algorithms import (
     evaluate_policy,
     greedy_action,
+    greedy_policy_from_q,
     make_q,
     q_learning,
     rollout,
@@ -428,10 +429,10 @@ def main():
         description="Model-free comparison: Q-learning/SARSA variants only"
     )
     parser.add_argument("--scenario", default="data/scenario.json")
-    parser.add_argument("--episodes", type=int, default=50000)
+    parser.add_argument("--episodes", type=int, default=100000)
     parser.add_argument("--eval-episodes", type=int, default=300)
     parser.add_argument("--output-dir", default="results")
-    parser.add_argument("--gamma", type=float, default=0.95)
+    parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--q-alpha", type=float, default=0.10)
     parser.add_argument("--sarsa-alpha", type=float, default=0.08)
     parser.add_argument("--exp-sarsa-alpha", type=float, default=0.08)
@@ -441,7 +442,7 @@ def main():
     parser.add_argument("--risk-q-alpha", type=float, default=0.10)
     parser.add_argument("--alpha-end", type=float, default=0.03)
     parser.add_argument("--epsilon-start", type=float, default=1.0)
-    parser.add_argument("--epsilon-end", type=float, default=0.05)
+    parser.add_argument("--epsilon-end", type=float, default=0.02)
     parser.add_argument("--epsilon-decay-q", type=float, default=0.9995)
     parser.add_argument("--epsilon-decay-sarsa", type=float, default=0.9997)
     parser.add_argument("--epsilon-decay-exp-sarsa", type=float, default=0.9997)
@@ -471,11 +472,6 @@ def main():
     factory = env_factory(scenario_path)
     env = UAVSolarEnv(scenario_path)
 
-    with open(scenario_path, "r", encoding="utf-8") as f:
-        scenario_snapshot = json.load(f)
-    with (out_dir / "scenario_used.json").open("w", encoding="utf-8") as f:
-        json.dump(scenario_snapshot, f, indent=2, ensure_ascii=False)
-
     print("Scenario loaded")
     print(f"Number of states: {len(env.enumerate_states())}")
     print(f"Actions: {env.actions}\n")
@@ -493,7 +489,7 @@ def main():
         optimistic_init=args.optimistic_init,
         seed=1,
     )
-    q_policy = q_policy_fn(Q, env.actions, seed=101)
+    q_policy = greedy_policy_from_q(Q, env, seed=101)
     q_metrics = evaluate_policy(factory, q_policy, episodes=args.eval_episodes)
     q_metrics["algorithm"] = "Q-learning"
 
@@ -510,7 +506,7 @@ def main():
         optimistic_init=args.optimistic_init,
         seed=2,
     )
-    sarsa_policy = q_policy_fn(QS, env.actions, seed=202)
+    sarsa_policy = greedy_policy_from_q(QS, env, seed=202)
     sarsa_metrics = evaluate_policy(factory, sarsa_policy, episodes=args.eval_episodes)
     sarsa_metrics["algorithm"] = "SARSA"
 
@@ -627,8 +623,8 @@ def main():
     save_metrics(rows, out_dir / "metrics.csv")
     plot_metrics(rows, out_dir)
 
-    sample = rollout(UAVSolarEnv(scenario_path, seed=100), masked_q_policy)
-    print_rollout(sample, "Action-masked Q-learning policy")
+    sample = rollout(UAVSolarEnv(scenario_path, seed=100), q_policy)
+    print_rollout(sample, "Q-learning policy")
     with (out_dir / "sample_rollout.json").open("w", encoding="utf-8") as f:
         json.dump(sample, f, indent=2, ensure_ascii=False, default=str)
 
